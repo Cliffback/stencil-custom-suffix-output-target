@@ -16,7 +16,6 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
       const files = await compilerCtx.fs.readdir(outputDir);
       for (const file of files) {
         if (file.relPath.endsWith('.js')) {
-          console.error(`Processing file: ${file.relPath}`);
           const filePath = `${outputDir}/${file.relPath}`;
           const content = await compilerCtx.fs.readFile(filePath);
           const transformedContent = await applyTransformers(file.relPath, content, compilerCtx, buildCtx.components);
@@ -36,7 +35,6 @@ async function applyTransformers(fileName: string, content: string, compilerCtx:
       const moduleFile = getModuleFromSourceFile(compilerCtx, fileName);
       if (moduleFile !== undefined && moduleFile.cmps.length > 0) {
         const mainTagName = moduleFile.cmps[0].tagName;
-        console.log('Patching:', mainTagName);
         tagNames.push(mainTagName);
         moduleFile.cmps.forEach(cmp => {
           cmp.dependencies.forEach(dCmp => {
@@ -177,7 +175,6 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
   let match: RegExpExecArray | null;
   while ((match = cssRegex.exec(code)) !== null) {
     const [fullMatch, varName, cssContent] = match as unknown as [string, string, string];
-    console.log(`Found variable: ${varName}`);
     const result = await postcss([
       (root: postcss.Root) => {
         root.walkRules(rule => {
@@ -201,7 +198,7 @@ const getModuleFromSourceFile = (compilerCtx: d.CompilerCtx, fileName: string): 
   });
 };
 
-// Maybe get the suffix from a js config file in the consuming project, like .custom-suffix.js
+// TODO: Maybe get the suffix from a js config file in the consuming project, like .custom-suffix.js
 const runtimeFunction = ts.factory.createFunctionDeclaration(
   undefined,
   undefined,
