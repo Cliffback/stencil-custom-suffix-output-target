@@ -1,8 +1,9 @@
-/* eslint-disable prettier/prettier */
 import { Config } from '@stencil/core';
 import { BuildCtx, CompilerCtx, OutputTargetCustom } from '@stencil/core/internal';
 import ts from 'typescript';
 import * as d from '@stencil/core/internal';
+import postcss from 'postcss';
+import postcssSafeParser from 'postcss-safe-parser';
 
 export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   type: 'custom',
@@ -18,7 +19,7 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
           console.error(`Processing file: ${file.relPath}`);
           const filePath = `${outputDir}/${file.relPath}`;
           const content = await compilerCtx.fs.readFile(filePath);
-          const transformedContent = applyTransformers(file.relPath, content, compilerCtx, buildCtx.components);
+          const transformedContent = await applyTransformers(file.relPath, content, compilerCtx, buildCtx.components);
           await compilerCtx.fs.writeFile(filePath, transformedContent);
         }
       }
@@ -26,13 +27,13 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   },
 });
 
-function applyTransformers(fileName: string, content: string, compilerCtx: CompilerCtx, components: d.ComponentCompilerMeta[]): string {
+async function applyTransformers(fileName: string, content: string, compilerCtx: CompilerCtx, components: d.ComponentCompilerMeta[]): Promise<string> {
   const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest);
+  const tagNames: string[] = [];
 
   const transformer = (context: ts.TransformationContext) => {
     return (rootNode: ts.SourceFile) => {
       const moduleFile = getModuleFromSourceFile(compilerCtx, fileName);
-      const tagNames: string[] = [];
       if (moduleFile !== undefined && moduleFile.cmps.length > 0) {
         const mainTagName = moduleFile.cmps[0].tagName;
         console.log('Patching:', mainTagName);
@@ -51,17 +52,7 @@ function applyTransformers(fileName: string, content: string, compilerCtx: Compi
         return rootNode;
       }
 
-      const runtimeFunction = ts.factory.createFunctionDeclaration(
-        undefined,
-        undefined,
-        'getCustomSuffix',
-        undefined,
-        [],
-        undefined,
-        ts.factory.createBlock([ts.factory.createReturnStatement(ts.factory.createStringLiteral('-test'))]),
-      );
-
-      const newSourceFile = ts.factory.updateSourceFile(rootNode, [...rootNode.statements, runtimeFunction]);
+      const newSourceFile = ts.factory.updateSourceFile(rootNode, [...rootNode.statements.slice(0, -3), runtimeFunction, ...rootNode.statements.slice(-3)]);
 
       function visit(node: ts.Node): ts.Node {
         let newNode: ts.Node = node;
@@ -79,6 +70,7 @@ function applyTransformers(fileName: string, content: string, compilerCtx: Compi
             newNode = ts.factory.updateCallExpression(node, node.expression, node.typeArguments, [customTagNameExpression, ...node.arguments.slice(1)]);
           }
         }
+
         // Find all instances of query selectors targeting the tagname and add the custom suffix as a template literal
         if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
           const methodName = node.expression.name.text;
@@ -103,7 +95,7 @@ function applyTransformers(fileName: string, content: string, compilerCtx: Compi
                     foundLength = tagName.length;
                   }
                 }
-                if (foundTag) {
+                if (foundTag !== undefined) {
                   matches.push({ tag: foundTag, start: i, end: i + foundLength });
                   i += foundLength;
                 } else {
@@ -173,16 +165,48 @@ function applyTransformers(fileName: string, content: string, compilerCtx: Compi
 
   const result = ts.transform(sourceFile, [transformer]);
   const printer = ts.createPrinter();
-  return printer.printFile(result.transformed[0]);
+  const transformedCode = printer.printFile(result.transformed[0]);
+
+  // Process CSS asynchronously after the AST transformation
+  const processedCode = await processCSS(transformedCode, tagNames);
+  return processedCode;
 }
 
-export const getModuleFromSourceFile = (compilerCtx: d.CompilerCtx, fileName: string): d.Module | undefined => {
-  // a key with the `Module`'s filename could not be found, attempt to resolve it by iterating over all modules in the
-  // compiler context
+async function processCSS(code: string, tagNames: string[]): Promise<string> {
+  const cssRegex = /const\s+(\w+Css)\s*=\s*"([^"]*)"/g;
+  let match: RegExpExecArray | null;
+  while ((match = cssRegex.exec(code)) !== null) {
+    const [fullMatch, varName, cssContent] = match as unknown as [string, string, string];
+    console.log(`Found variable: ${varName}`);
+    const result = await postcss([
+      (root: postcss.Root) => {
+        root.walkRules(rule => {
+          rule.selectors = rule.selectors.map(sel => (tagNames.includes(sel) && /^[a-z][a-z0-9-]*$/i.test(sel) ? sel + '${getCustomSuffix()}' : sel));
+        });
+      },
+    ]).process(cssContent, { parser: postcssSafeParser, from: undefined });
+
+    const updatedInitializer = `\`${result.css}\``;
+    code = code.replace(fullMatch, `const ${varName} = ${updatedInitializer};`);
+  }
+  return code;
+}
+
+// Simplified version of getModuleFromSourceFile from @stencil/core
+const getModuleFromSourceFile = (compilerCtx: d.CompilerCtx, fileName: string): d.Module | undefined => {
   const moduleFiles = Array.from(compilerCtx.moduleMap.values());
-  // console.log('Module files:', moduleFiles);
   return moduleFiles.find(m => {
     const tagName = m.cmps[0]?.tagName;
     return tagName === fileName.replace('.js', '');
   });
 };
+
+const runtimeFunction = ts.factory.createFunctionDeclaration(
+  undefined,
+  undefined,
+  'getCustomSuffix',
+  undefined,
+  [],
+  undefined,
+  ts.factory.createBlock([ts.factory.createReturnStatement(ts.factory.createStringLiteral('-test'))]),
+);
