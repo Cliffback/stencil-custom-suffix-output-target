@@ -201,6 +201,7 @@ const getModuleFromSourceFile = (compilerCtx: d.CompilerCtx, fileName: string): 
   });
 };
 
+// Maybe get the suffix from a js config file in the consuming project, like .custom-suffix.js
 const runtimeFunction = ts.factory.createFunctionDeclaration(
   undefined,
   undefined,
