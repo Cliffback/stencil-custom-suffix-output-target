@@ -1,7 +1,7 @@
 import { customSuffixOutputTarget } from '../custom-suffix-output-target';
 import * as d from '@stencil/core/internal';
 import { testData } from './custom-suffix-output-target.data';
-import { setup } from './custom-suffix-output-target.spec-utils.ts';
+import { Component, setup } from './custom-suffix-output-target.spec-utils.ts';
 
 describe('customSuffixOutputTarget', () => {
   let config: d.ValidatedConfig;
@@ -11,7 +11,11 @@ describe('customSuffixOutputTarget', () => {
   let docs: d.JsonDocs;
 
   beforeEach(() => {
-    ({ config, compiler, build, fileSystem, docs } = setup({ config, compiler, build, fileSystem, docs }));
+    const component: Component = {
+      tagName: 'my-component',
+      dependencies: ['stn-button', 'stn-checkbox'],
+    };
+    ({ config, compiler, build, fileSystem, docs } = setup({ config, compiler, build, fileSystem, docs, component }));
   });
 
   it('should process files in the output directory', async () => {
