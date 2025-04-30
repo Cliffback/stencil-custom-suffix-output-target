@@ -3,6 +3,7 @@ import { Config } from '@stencil/core';
 import { CompilerCtx, BuildCtx, JsonDocs } from '@stencil/core/internal';
 import * as d from '@stencil/core/internal';
 import { mockModule } from '@stencil/core/testing';
+import { testData } from './custom-suffix-output-target.data';
 // import { mockBuildCtx, mockCompilerCtx, mockCompilerSystem, mockModule, mockValidatedConfig } from '@stencil/core/testing';
 
 jest.mock('@stencil/core/internal', () => ({
@@ -128,9 +129,9 @@ describe('customSuffixOutputTarget', () => {
 
     mockCompilerCtx = {
       fs: {
-        readdir: jest.fn().mockResolvedValue([{ relPath: 'component.js' }]),
+        readdir: jest.fn().mockResolvedValue([{ relPath: 'my-component.js' }]),
         readFile: jest.fn((filePath: string) => {
-          return mockFileSystem[filePath] || "document.querySelector('component');";
+          return mockFileSystem[filePath] || testData.input;
         }),
         writeFile: jest.fn((filePath: string, content: string) => {
           mockFileSystem[filePath] = content;
@@ -144,14 +145,14 @@ describe('customSuffixOutputTarget', () => {
       mockModule({
         cmps: [
           stubComponentCompilerMeta({
-            tagName: 'component',
-            dependencies: ['dep1'],
+            tagName: 'my-component',
+            dependencies: ['stn-button', 'stn-checkbox'],
           }),
         ],
       }),
     );
     mockBuildCtx = {
-      components: [{ tagName: 'component' }],
+      components: [{ tagName: 'my-component' }, { tagName: 'stn-button' }, { tagName: 'stn-checkbox' }],
     } as unknown as BuildCtx;
   });
 
@@ -171,11 +172,11 @@ describe('customSuffixOutputTarget', () => {
     await outputTarget.generator(mockConfig, mockCompilerCtx, mockBuildCtx, mockDocs);
 
     expect(mockCompilerCtx.fs.readdir).toHaveBeenCalledWith('/mock-output-dir');
-    expect(mockCompilerCtx.fs.readFile).toHaveBeenCalledWith('/mock-output-dir/component.js');
-    expect(mockCompilerCtx.fs.writeFile).toHaveBeenCalledWith('/mock-output-dir/component.js', expect.any(String));
+    expect(mockCompilerCtx.fs.readFile).toHaveBeenCalledWith('/mock-output-dir/my-component.js');
+    expect(mockCompilerCtx.fs.writeFile).toHaveBeenCalledWith('/mock-output-dir/my-component.js', expect.any(String));
 
-    const patchedContent = await mockCompilerCtx.fs.readFile('/mock-output-dir/component.js');
-    expect(patchedContent).toBe('expected string content');
+    const patchedContent = await mockCompilerCtx.fs.readFile('/mock-output-dir/my-component.js');
+    expect(patchedContent).toBe(testData.expectedOutput);
   });
 
   it('should skip processing if tagNameTransform is not enabled', async () => {
