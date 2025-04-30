@@ -28,12 +28,23 @@ interface SetupParams {
   build: d.BuildCtx;
   fileSystem: d.CompilerSystem;
   docs: d.JsonDocs;
-  component?: Component;
+  component?: TestComponentSetup;
 }
 
-export interface Component {
+export class TestComponentSetup {
   tagName: string;
   dependencies: string[];
+  outputPath: string;
+
+  constructor({ tagName, dependencies, outputPath }: { tagName: string; dependencies: string[]; outputPath: string }) {
+    this.tagName = tagName;
+    this.dependencies = dependencies;
+    this.outputPath = outputPath;
+  }
+
+  get fullPath(): string {
+    return `${this.outputPath}/${this.tagName}.js`;
+  }
 }
 
 export const setup = ({ config, compiler, build, fileSystem, docs, component }: SetupParams): SetupParams => {
@@ -53,7 +64,7 @@ export const setup = ({ config, compiler, build, fileSystem, docs, component }: 
   };
   config = mockValidatedConfig({
     extras: { tagNameTransform: true },
-    outputTargets: [{ type: 'dist-custom-elements', dir: '/mock-output-dir' }],
+    outputTargets: [{ type: 'dist-custom-elements', dir: component.outputPath }],
   });
 
   fileSystem = config.sys;
