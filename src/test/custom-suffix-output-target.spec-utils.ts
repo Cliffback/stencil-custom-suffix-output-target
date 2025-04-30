@@ -28,9 +28,19 @@ interface SetupParams {
   build: d.BuildCtx;
   fileSystem: d.CompilerSystem;
   docs: d.JsonDocs;
+  component?: Component;
 }
 
-export const setup = ({ config, compiler, build, fileSystem, docs }: SetupParams): SetupParams => {
+export interface Component {
+  tagName: string;
+  dependencies: string[];
+}
+
+export const setup = ({ config, compiler, build, fileSystem, docs, component }: SetupParams): SetupParams => {
+  if (component === undefined) {
+    throw new Error('Component is required');
+  }
+
   docs = {
     components: [],
     timestamp: '',
@@ -54,7 +64,7 @@ export const setup = ({ config, compiler, build, fileSystem, docs }: SetupParams
     ...compiler,
     fs: {
       ...compiler.fs,
-      readdir: jest.fn().mockResolvedValue([{ relPath: 'my-component.js' }]),
+      readdir: jest.fn().mockResolvedValue([{ relPath: component.tagName + '.js' }]),
       readFile: jest.fn((filePath: string) => {
         return Promise.resolve(fileSystem[filePath] ?? testData.input);
       }),
@@ -70,8 +80,8 @@ export const setup = ({ config, compiler, build, fileSystem, docs }: SetupParams
     mockModule({
       cmps: [
         stubComponentCompilerMeta({
-          tagName: 'my-component',
-          dependencies: ['stn-button', 'stn-checkbox'],
+          tagName: component.tagName,
+          dependencies: component.dependencies,
         }),
       ],
     }),
@@ -79,12 +89,9 @@ export const setup = ({ config, compiler, build, fileSystem, docs }: SetupParams
   build = mockBuildCtx(config, compiler);
   build = {
     ...build,
-    components: [
-      stubComponentCompilerMeta({ tagName: 'my-component' }),
-      stubComponentCompilerMeta({ tagName: 'stn-button' }),
-      stubComponentCompilerMeta({ tagName: 'stn-checkbox' }),
-    ],
+    components: [component.tagName, ...component.dependencies].map(tagName => stubComponentCompilerMeta({ tagName: tagName })),
   };
+
   return { config, compiler, build, fileSystem, docs };
 };
 
