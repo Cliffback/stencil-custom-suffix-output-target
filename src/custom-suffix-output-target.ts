@@ -184,7 +184,7 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
     ]).process(cssContent, { parser: postcssSafeParser, from: undefined });
 
     const updatedInitializer = `\`${result.css}\``;
-    code = code.replace(fullMatch, `const ${varName} = ${updatedInitializer};`);
+    code = code.replace(fullMatch, `const ${varName} = ${updatedInitializer}`);
   }
   return code;
 }
