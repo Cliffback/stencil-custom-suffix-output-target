@@ -1,7 +1,7 @@
 import { customSuffixOutputTarget } from '../custom-suffix-output-target';
 import * as d from '@stencil/core/internal';
 import { testData } from './custom-suffix-output-target.data';
-import { Component, setup } from './custom-suffix-output-target.spec-utils.ts';
+import { TestComponentSetup, setup } from './custom-suffix-output-target.spec-utils.ts';
 
 describe('customSuffixOutputTarget', () => {
   let config: d.ValidatedConfig;
@@ -10,11 +10,13 @@ describe('customSuffixOutputTarget', () => {
   let fileSystem: d.CompilerSystem;
   let docs: d.JsonDocs;
 
+  const component = new TestComponentSetup({
+    tagName: 'my-component',
+    dependencies: ['stn-button', 'stn-checkbox'],
+    outputPath: '/mock-output-dir',
+  });
+
   beforeEach(() => {
-    const component: Component = {
-      tagName: 'my-component',
-      dependencies: ['stn-button', 'stn-checkbox'],
-    };
     ({ config, compiler, build, fileSystem, docs } = setup({ config, compiler, build, fileSystem, docs, component }));
   });
 
@@ -23,11 +25,11 @@ describe('customSuffixOutputTarget', () => {
 
     await outputTarget.generator(config, compiler, build, docs);
 
-    expect(compiler.fs.readdir).toHaveBeenCalledWith('/mock-output-dir');
-    expect(compiler.fs.readFile).toHaveBeenCalledWith('/mock-output-dir/my-component.js');
-    expect(compiler.fs.writeFile).toHaveBeenCalledWith('/mock-output-dir/my-component.js', expect.any(String));
+    expect(compiler.fs.readdir).toHaveBeenCalledWith(component.outputPath);
+    expect(compiler.fs.readFile).toHaveBeenCalledWith(component.fullPath);
+    expect(compiler.fs.writeFile).toHaveBeenCalledWith(component.fullPath, expect.any(String));
 
-    const patchedContent = await compiler.fs.readFile('/mock-output-dir/my-component.js');
+    const patchedContent = await compiler.fs.readFile(component.fullPath);
     expect(patchedContent).toBe(testData.expectedOutput);
   });
 
