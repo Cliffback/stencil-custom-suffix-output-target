@@ -1,7 +1,95 @@
 import * as d from '@stencil/core/internal';
+import { mockModule, mockCompilerCtx, mockBuildCtx, mockValidatedConfig } from '@stencil/core/testing';
+import { testData } from './custom-suffix-output-target.data';
+import { FsWriteResults } from '@stencil/core/compiler/sys/in-memory-fs';
+
+// const setup = () => {
+//   const sys = mockCompilerSystem();
+//   const config: d.ValidatedConfig = mockValidatedConfig({
+//     buildAppCore: true,
+//     buildEs5: true,
+//     configPath: '/testing-path',
+//     namespace: 'TestApp',
+//     outputTargets: [{ type: 'dist-custom-elements' }],
+//     srcDir: '/scripts/test',
+//     sys,
+//   });
+//   const compilerCtx = mockCompilerCtx(config);
+//   const buildCtx = mockBuildCtx(config, compilerCtx);
+//
+//   compilerCtx.moduleMap.set('test', mockModule());
+//
+//   return { config, compilerCtx, buildCtx };
+// };
+
+interface SetupParams {
+  config: d.ValidatedConfig;
+  compiler: d.CompilerCtx;
+  build: d.BuildCtx;
+  fileSystem: d.CompilerSystem;
+  docs: d.JsonDocs;
+}
+
+export const setup = ({ config, compiler, build, fileSystem, docs }: SetupParams): SetupParams => {
+  docs = {
+    components: [],
+    timestamp: '',
+    compiler: {
+      name: '',
+      version: '',
+      typescriptVersion: '',
+    },
+    typeLibrary: {},
+  };
+  config = mockValidatedConfig({
+    extras: { tagNameTransform: true },
+    outputTargets: [{ type: 'dist-custom-elements', dir: '/mock-output-dir' }],
+  });
+
+  fileSystem = config.sys;
+
+  compiler = mockCompilerCtx(config);
+
+  compiler = {
+    ...compiler,
+    fs: {
+      ...compiler.fs,
+      readdir: jest.fn().mockResolvedValue([{ relPath: 'my-component.js' }]),
+      readFile: jest.fn((filePath: string) => {
+        return Promise.resolve(fileSystem[filePath] ?? testData.input);
+      }),
+      writeFile: jest.fn((filePath: string, content: string) => {
+        fileSystem[filePath] = content;
+        return Promise.resolve({} as FsWriteResults);
+      }),
+    },
+  };
+
+  compiler.moduleMap.set(
+    'test',
+    mockModule({
+      cmps: [
+        stubComponentCompilerMeta({
+          tagName: 'my-component',
+          dependencies: ['stn-button', 'stn-checkbox'],
+        }),
+      ],
+    }),
+  );
+  build = mockBuildCtx(config, compiler);
+  build = {
+    ...build,
+    components: [
+      stubComponentCompilerMeta({ tagName: 'my-component' }),
+      stubComponentCompilerMeta({ tagName: 'stn-button' }),
+      stubComponentCompilerMeta({ tagName: 'stn-checkbox' }),
+    ],
+  };
+  return { config, compiler, build, fileSystem, docs };
+};
 
 // Function not exported in @stencil/core/internal so we copied it
-export const stubComponentCompilerMeta = (overrides: Partial<d.ComponentCompilerMeta> = {}): d.ComponentCompilerMeta => ({
+const stubComponentCompilerMeta = (overrides: Partial<d.ComponentCompilerMeta> = {}): d.ComponentCompilerMeta => ({
   assetsDirs: [],
   attachInternalsMemberName: null,
   componentClassName: 'StubCmp',
