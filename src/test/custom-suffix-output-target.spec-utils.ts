@@ -22,19 +22,15 @@ import { FsWriteResults } from '@stencil/core/compiler/sys/in-memory-fs';
 //   return { config, compilerCtx, buildCtx };
 // };
 
-interface SetupParams {
+export class TestComponentSetup {
+  tagName: string;
+  dependencies: string[];
+  outputPath: string;
   config: d.ValidatedConfig;
   compiler: d.CompilerCtx;
   build: d.BuildCtx;
   fileSystem: d.CompilerSystem;
   docs: d.JsonDocs;
-  component?: TestComponentSetup;
-}
-
-export class TestComponentSetup {
-  tagName: string;
-  dependencies: string[];
-  outputPath: string;
 
   constructor({ tagName, dependencies, outputPath }: { tagName: string; dependencies: string[]; outputPath: string }) {
     this.tagName = tagName;
@@ -45,14 +41,18 @@ export class TestComponentSetup {
   get fullPath(): string {
     return `${this.outputPath}/${this.tagName}.js`;
   }
+
+  get generatorParams(): [d.ValidatedConfig, d.CompilerCtx, d.BuildCtx, d.JsonDocs] {
+    return [this.config, this.compiler, this.build, this.docs];
+  }
 }
 
-export const setup = ({ config, compiler, build, fileSystem, docs, component }: SetupParams): SetupParams => {
-  if (component === undefined) {
+export const mockSetup = (setup: TestComponentSetup) => {
+  if (setup === undefined) {
     throw new Error('Component is required');
   }
 
-  docs = {
+  setup.docs = {
     components: [],
     timestamp: '',
     compiler: {
@@ -62,48 +62,46 @@ export const setup = ({ config, compiler, build, fileSystem, docs, component }: 
     },
     typeLibrary: {},
   };
-  config = mockValidatedConfig({
+  setup.config = mockValidatedConfig({
     extras: { tagNameTransform: true },
-    outputTargets: [{ type: 'dist-custom-elements', dir: component.outputPath }],
+    outputTargets: [{ type: 'dist-custom-elements', dir: setup.outputPath }],
   });
 
-  fileSystem = config.sys;
+  setup.fileSystem = setup.config.sys;
 
-  compiler = mockCompilerCtx(config);
+  setup.compiler = mockCompilerCtx(setup.config);
 
-  compiler = {
-    ...compiler,
+  setup.compiler = {
+    ...setup.compiler,
     fs: {
-      ...compiler.fs,
-      readdir: jest.fn().mockResolvedValue([{ relPath: component.tagName + '.js' }]),
+      ...setup.compiler.fs,
+      readdir: jest.fn().mockResolvedValue([{ relPath: setup.tagName + '.js' }]),
       readFile: jest.fn((filePath: string) => {
-        return Promise.resolve(fileSystem[filePath] ?? testData.input);
+        return Promise.resolve(setup.fileSystem[filePath] ?? testData.input);
       }),
       writeFile: jest.fn((filePath: string, content: string) => {
-        fileSystem[filePath] = content;
+        setup.fileSystem[filePath] = content;
         return Promise.resolve({} as FsWriteResults);
       }),
     },
   };
 
-  compiler.moduleMap.set(
+  setup.compiler.moduleMap.set(
     'test',
     mockModule({
       cmps: [
         stubComponentCompilerMeta({
-          tagName: component.tagName,
-          dependencies: component.dependencies,
+          tagName: setup.tagName,
+          dependencies: setup.dependencies,
         }),
       ],
     }),
   );
-  build = mockBuildCtx(config, compiler);
-  build = {
-    ...build,
-    components: [component.tagName, ...component.dependencies].map(tagName => stubComponentCompilerMeta({ tagName: tagName })),
+  setup.build = mockBuildCtx(setup.config, setup.compiler);
+  setup.build = {
+    ...setup.build,
+    components: [setup.tagName, ...setup.dependencies].map(tagName => stubComponentCompilerMeta({ tagName: tagName })),
   };
-
-  return { config, compiler, build, fileSystem, docs };
 };
 
 // Function not exported in @stencil/core/internal so we copied it
