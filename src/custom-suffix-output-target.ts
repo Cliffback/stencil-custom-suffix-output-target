@@ -4,6 +4,7 @@ import ts from 'typescript';
 import * as d from '@stencil/core/internal';
 import postcss from 'postcss';
 import postcssSafeParser from 'postcss-safe-parser';
+import postcssSelectorParser, { Root } from 'postcss-selector-parser';
 
 export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   type: 'custom',
@@ -11,14 +12,28 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   generator: async (_config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) => {
     if (!_config.extras?.tagNameTransform) return;
     const outputDir = _config.outputTargets?.find(target => target.type === 'dist-custom-elements')?.dir;
+    let tagNames: string[] = [];
 
     if (outputDir !== undefined) {
       const files = await compilerCtx.fs.readdir(outputDir);
+
+      // retrieve all tagNames from the components
       for (const file of files) {
         if (file.relPath.endsWith('.js')) {
           const filePath = `${outputDir}/${file.relPath}`;
           const content = await compilerCtx.fs.readFile(filePath);
-          const transformedContent = await applyTransformers(file.relPath, content, compilerCtx, buildCtx.components);
+          getTagNames(file.relPath, content, compilerCtx, buildCtx.components, tagNames);
+        }
+      }
+      // remove duplicates
+      tagNames = Array.from(new Set(tagNames));
+
+      // apply the transformers to all files
+      for (const file of files) {
+        if (file.relPath.endsWith('.js')) {
+          const filePath = `${outputDir}/${file.relPath}`;
+          const content = await compilerCtx.fs.readFile(filePath);
+          const transformedContent = await applyTransformers(file.relPath, content, compilerCtx, buildCtx.components, tagNames);
           await compilerCtx.fs.writeFile(filePath, transformedContent);
         }
       }
@@ -26,11 +41,10 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   },
 });
 
-async function applyTransformers(fileName: string, content: string, compilerCtx: CompilerCtx, components: d.ComponentCompilerMeta[]): Promise<string> {
+function getTagNames(fileName: string, content: string, compilerCtx: CompilerCtx, components: d.ComponentCompilerMeta[], tagNames: string[]) {
   const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest);
-  const tagNames: string[] = [];
 
-  const transformer = (context: ts.TransformationContext) => {
+  const transformer = () => {
     return (rootNode: ts.SourceFile) => {
       const moduleFile = getModuleFromSourceFile(compilerCtx, fileName);
       if (moduleFile !== undefined && moduleFile.cmps.length > 0) {
@@ -45,8 +59,33 @@ async function applyTransformers(fileName: string, content: string, compilerCtx:
           });
         });
       }
+      return rootNode;
+    };
+  };
+  ts.transform(sourceFile, [transformer]);
+}
+
+async function applyTransformers(fileName: string, content: string, compilerCtx: CompilerCtx, components: d.ComponentCompilerMeta[], tagNames: string[]): Promise<string> {
+  const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest);
+
+  const transformer = (context: ts.TransformationContext) => {
+    return (rootNode: ts.SourceFile) => {
+      const moduleFile = getModuleFromSourceFile(compilerCtx, fileName);
+      const localTagNames: string[] = [];
+      if (moduleFile !== undefined && moduleFile.cmps.length > 0) {
+        const mainTagName = moduleFile.cmps[0].tagName;
+        tagNames.push(mainTagName);
+        moduleFile.cmps.forEach(cmp => {
+          cmp.dependencies.forEach(dCmp => {
+            if (dCmp === undefined) return;
+            const foundDep = components.find((dComp: { tagName: string }) => dComp.tagName === dCmp);
+            if (foundDep === undefined) return;
+            localTagNames.push(foundDep.tagName);
+          });
+        });
+      }
       // File is not a component, return the original source file
-      if (tagNames.length === 0) {
+      if (localTagNames.length === 0) {
         return rootNode;
       }
 
@@ -178,7 +217,15 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
     const result = await postcss([
       (root: postcss.Root) => {
         root.walkRules(rule => {
-          rule.selectors = rule.selectors.map(sel => (tagNames.includes(sel) && /^[a-z][a-z0-9-]*$/i.test(sel) ? sel + '${getCustomSuffix()}' : sel));
+          rule.selectors = rule.selectors.map(sel => {
+            const parsedSelector = postcssSelectorParser().astSync(sel) as unknown as Root;
+            parsedSelector.walkTags(tag => {
+              if (tagNames.includes(tag.value)) {
+                tag.value += '${getCustomSuffix()}';
+              }
+            });
+            return parsedSelector.toString();
+          });
         });
       },
     ]).process(cssContent, { parser: postcssSafeParser, from: undefined });
