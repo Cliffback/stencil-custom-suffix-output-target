@@ -70,25 +70,25 @@ async function applyTransformers(fileName: string, content: string, compilerCtx:
 
   const transformer = (context: ts.TransformationContext) => {
     return (rootNode: ts.SourceFile) => {
-      const moduleFile = getModuleFromSourceFile(compilerCtx, fileName);
-      const localTagNames: string[] = [];
-      if (moduleFile !== undefined && moduleFile.cmps.length > 0) {
-        const mainTagName = moduleFile.cmps[0].tagName;
-        tagNames.push(mainTagName);
-        moduleFile.cmps.forEach(cmp => {
-          cmp.dependencies.forEach(dCmp => {
-            if (dCmp === undefined) return;
-            const foundDep = components.find((dComp: { tagName: string }) => dComp.tagName === dCmp);
-            if (foundDep === undefined) return;
-            localTagNames.push(foundDep.tagName);
-          });
-        });
-      }
-      // File is not a component, return the original source file
-      if (localTagNames.length === 0) {
-        return rootNode;
-      }
-
+      // const moduleFile = getModuleFromSourceFile(compilerCtx, fileName);
+      // const localTagNames: string[] = [];
+      // if (moduleFile !== undefined && moduleFile.cmps.length > 0) {
+      //   const mainTagName = moduleFile.cmps[0].tagName;
+      //   tagNames.push(mainTagName);
+      //   moduleFile.cmps.forEach(cmp => {
+      //     cmp.dependencies.forEach(dCmp => {
+      //       if (dCmp === undefined) return;
+      //       const foundDep = components.find((dComp: { tagName: string }) => dComp.tagName === dCmp);
+      //       if (foundDep === undefined) return;
+      //       localTagNames.push(foundDep.tagName);
+      //     });
+      //   });
+      // }
+      // // File is not a component, return the original source file
+      // if (localTagNames.length === 0) {
+      //   return rootNode;
+      // }
+      //
       const newSourceFile = ts.factory.updateSourceFile(rootNode, [...rootNode.statements.slice(0, -3), runtimeFunction, ...rootNode.statements.slice(-3)]);
 
       function visit(node: ts.Node): ts.Node {
@@ -167,6 +167,32 @@ async function applyTransformers(fileName: string, content: string, compilerCtx:
                 const customTagNameExpression = ts.factory.createTemplateExpression(ts.factory.createTemplateHead(templateHead), templateSpans);
                 newNode = ts.factory.updateCallExpression(node, node.expression, node.typeArguments, [customTagNameExpression, ...node.arguments.slice(1)]);
               }
+            }
+          }
+        }
+
+        // Handle cases like `if (elem.tagName === "STN-ICON")`
+        if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
+          const left = node.left;
+          const right = node.right;
+
+          if (ts.isPropertyAccessExpression(left) && left.name.text === 'tagName' && ts.isStringLiteral(right)) {
+            const tagName = right.text;
+            if (tagNames.some(tag => tag.toLowerCase() === tagName.toLowerCase())) {
+              const customTagNameExpression = ts.factory.createBinaryExpression(
+                ts.factory.createStringLiteral(tagName),
+                ts.SyntaxKind.PlusToken,
+                ts.factory.createCallExpression(
+                  ts.factory.createPropertyAccessExpression(
+                    ts.factory.createCallExpression(ts.factory.createIdentifier('getCustomSuffix'), undefined, []),
+                    ts.factory.createIdentifier('toUpperCase'),
+                  ),
+                  undefined,
+                  [],
+                ),
+              );
+
+              newNode = ts.factory.updateBinaryExpression(node, left, node.operatorToken, customTagNameExpression);
             }
           }
         }
