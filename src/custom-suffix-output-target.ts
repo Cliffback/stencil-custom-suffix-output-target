@@ -191,10 +191,18 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
 
 // Simplified version of getModuleFromSourceFile from @stencil/core
 const getModuleFromSourceFile = (compilerCtx: d.CompilerCtx, fileName: string): d.Module | undefined => {
+  const printLog = fileName === 'stn-context-menu2.js' ? true : false;
+
+  const printDebugMessage = (...message: unknown[]) => {
+    if (printLog) {
+      console.log(...message);
+    }
+  };
+  printDebugMessage(`Finding module for file: ${fileName}`);
   const moduleFiles = Array.from(compilerCtx.moduleMap.values());
   return moduleFiles.find(m => {
     const tagName = m.cmps[0]?.tagName;
-    return tagName === fileName.replace('.js', '');
+    return tagName === fileName.replace('.js', '') || tagName === fileName.replace('2.js', '');
   });
 };
 
