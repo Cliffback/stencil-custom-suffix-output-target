@@ -171,7 +171,7 @@ async function applyTransformers(fileName: string, content: string, compilerCtx:
 }
 
 async function processCSS(code: string, tagNames: string[]): Promise<string> {
-  const cssRegex = /const\s+(\w+Css)\s*=\s*"([^"]*)"/g;
+  const cssRegex = /const\s+(\w+Css)\s*=\s*"((?:\\.|[^"\\])*)"/g;
   let match: RegExpExecArray | null;
   while ((match = cssRegex.exec(code)) !== null) {
     const [fullMatch, varName, cssContent] = match as unknown as [string, string, string];
