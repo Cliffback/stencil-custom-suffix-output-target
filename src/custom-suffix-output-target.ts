@@ -33,7 +33,7 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
         if (file.relPath.endsWith('.js')) {
           const filePath = `${outputDir}/${file.relPath}`;
           const content = await compilerCtx.fs.readFile(filePath);
-          const transformedContent = await applyTransformers(file.relPath, content, compilerCtx, buildCtx.components, tagNames);
+          const transformedContent = await applyTransformers(file.relPath, content, tagNames);
           await compilerCtx.fs.writeFile(filePath, transformedContent);
         }
       }
@@ -65,32 +65,12 @@ function getTagNames(fileName: string, content: string, compilerCtx: CompilerCtx
   ts.transform(sourceFile, [transformer]);
 }
 
-async function applyTransformers(fileName: string, content: string, compilerCtx: CompilerCtx, components: d.ComponentCompilerMeta[], tagNames: string[]): Promise<string> {
+async function applyTransformers(fileName: string, content: string, tagNames: string[]): Promise<string> {
   const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest);
+  let didTransform = false;
 
   const transformer = (context: ts.TransformationContext) => {
     return (rootNode: ts.SourceFile) => {
-      // const moduleFile = getModuleFromSourceFile(compilerCtx, fileName);
-      // const localTagNames: string[] = [];
-      // if (moduleFile !== undefined && moduleFile.cmps.length > 0) {
-      //   const mainTagName = moduleFile.cmps[0].tagName;
-      //   tagNames.push(mainTagName);
-      //   moduleFile.cmps.forEach(cmp => {
-      //     cmp.dependencies.forEach(dCmp => {
-      //       if (dCmp === undefined) return;
-      //       const foundDep = components.find((dComp: { tagName: string }) => dComp.tagName === dCmp);
-      //       if (foundDep === undefined) return;
-      //       localTagNames.push(foundDep.tagName);
-      //     });
-      //   });
-      // }
-      // // File is not a component, return the original source file
-      // if (localTagNames.length === 0) {
-      //   return rootNode;
-      // }
-      //
-      const newSourceFile = ts.factory.updateSourceFile(rootNode, [...rootNode.statements.slice(0, -3), runtimeFunction, ...rootNode.statements.slice(-3)]);
-
       function visit(node: ts.Node): ts.Node {
         let newNode: ts.Node = node;
 
@@ -220,13 +200,25 @@ async function applyTransformers(fileName: string, content: string, compilerCtx:
           }
         }
 
+        didTransform = newNode !== node;
+
         return ts.visitEachChild(newNode, visit, context);
       }
-      return ts.visitNode(newSourceFile, visit) as ts.SourceFile;
+      return ts.visitNode(rootNode, visit) as ts.SourceFile;
     };
   };
 
-  const result = ts.transform(sourceFile, [transformer]);
+  const addRuntimeFunctionTransformer = () => {
+    return (rootNode: ts.SourceFile) => {
+      const newSourceFile = ts.factory.updateSourceFile(rootNode, [...rootNode.statements, runtimeFunction]);
+      return newSourceFile;
+    };
+  };
+
+  let result = ts.transform(sourceFile, [transformer]);
+  if (didTransform) {
+    result = ts.transform(result.transformed[0], [addRuntimeFunctionTransformer]);
+  }
   const printer = ts.createPrinter();
   const transformedCode = printer.printFile(result.transformed[0]);
 
