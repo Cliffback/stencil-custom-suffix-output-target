@@ -18,49 +18,19 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
     const tagNames = buildCtx.components.map(cmp => cmp.tagName);
 
     for (const cmp of buildCtx.components) {
-      const filePath = `${outputDir}/${cmp.tagName}.js`; // Adjust file naming as needed
-      // const filePath = cmp.jsFilePath;
-      const originalContent = await compilerCtx.fs.readFile(filePath).catch(() => '');
+      let filePath = `${outputDir}/${cmp.tagName}2.js`;
+      let originalContent = await compilerCtx.fs.readFile(filePath).catch(() => '');
+
+      if (originalContent === undefined) {
+        filePath = `${outputDir}/${cmp.tagName}.js`;
+        originalContent = await compilerCtx.fs.readFile(filePath).catch(() => '');
+      }
       const transformedContent = await applyTransformers(filePath, originalContent, tagNames);
 
-      // Write the transformed content back to the in-memory file system
       await compilerCtx.fs.writeFile(filePath, transformedContent);
-      // buildCtx.debug(`Patched in-memory file: ${filePath}`);
-
-      const filePath2 = `${outputDir}/${cmp.tagName}2.js`; // Adjust file naming as needed
-      const originalContent2 = await compilerCtx.fs.readFile(filePath2).catch(() => '');
-      if (originalContent2 !== undefined) {
-        const transformedContent2 = await applyTransformers(filePath2, originalContent2, tagNames);
-        await compilerCtx.fs.writeFile(filePath2, transformedContent2);
-        // buildCtx.debug(`Patched in-memory file: ${filePath2}`);
-      }
     }
   },
 });
-
-function getTagNames(fileName: string, content: string, compilerCtx: CompilerCtx, components: d.ComponentCompilerMeta[], tagNames: string[]) {
-  const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest);
-
-  const transformer = () => {
-    return (rootNode: ts.SourceFile) => {
-      const moduleFile = getModuleFromSourceFile(compilerCtx, fileName);
-      if (moduleFile !== undefined && moduleFile.cmps.length > 0) {
-        const mainTagName = moduleFile.cmps[0].tagName;
-        tagNames.push(mainTagName);
-        moduleFile.cmps.forEach(cmp => {
-          cmp.dependencies.forEach(dCmp => {
-            if (dCmp === undefined) return;
-            const foundDep = components.find((dComp: { tagName: string }) => dComp.tagName === dCmp);
-            if (foundDep === undefined) return;
-            tagNames.push(foundDep.tagName);
-          });
-        });
-      }
-      return rootNode;
-    };
-  };
-  ts.transform(sourceFile, [transformer]);
-}
 
 async function applyTransformers(fileName: string, content: string, tagNames: string[]): Promise<string> {
   const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest);
@@ -250,15 +220,6 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
   }
   return code;
 }
-
-// Simplified version of getModuleFromSourceFile from @stencil/core
-const getModuleFromSourceFile = (compilerCtx: d.CompilerCtx, fileName: string): d.Module | undefined => {
-  const moduleFiles = Array.from(compilerCtx.moduleMap.values());
-  return moduleFiles.find(m => {
-    const tagName = m.cmps[0]?.tagName;
-    return tagName === fileName.replace('.js', '') || tagName === fileName.replace('2.js', '');
-  });
-};
 
 // TODO: Maybe get the suffix from a js config file in the consuming project, like .custom-suffix.js
 const runtimeFunction = ts.factory.createFunctionDeclaration(
