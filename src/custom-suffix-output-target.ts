@@ -11,31 +11,28 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   name: 'custom-suffix-output-target',
   generator: async (_config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) => {
     if (!_config.extras?.tagNameTransform) return;
+
     const outputDir = _config.outputTargets?.find(target => target.type === 'dist-custom-elements')?.dir;
-    let tagNames: string[] = [];
+    if (!outputDir) return;
 
-    if (outputDir !== undefined) {
-      const files = await compilerCtx.fs.readdir(outputDir);
+    const tagNames = buildCtx.components.map(cmp => cmp.tagName);
 
-      // retrieve all tagNames from the components
-      for (const file of files) {
-        if (file.relPath.endsWith('.js')) {
-          const filePath = `${outputDir}/${file.relPath}`;
-          const content = await compilerCtx.fs.readFile(filePath);
-          getTagNames(file.relPath, content, compilerCtx, buildCtx.components, tagNames);
-        }
-      }
-      // remove duplicates
-      tagNames = Array.from(new Set(tagNames));
+    for (const cmp of buildCtx.components) {
+      const filePath = `${outputDir}/${cmp.tagName}.js`; // Adjust file naming as needed
+      // const filePath = cmp.jsFilePath;
+      const originalContent = await compilerCtx.fs.readFile(filePath).catch(() => '');
+      const transformedContent = await applyTransformers(filePath, originalContent, tagNames);
 
-      // apply the transformers to all files
-      for (const file of files) {
-        if (file.relPath.endsWith('.js')) {
-          const filePath = `${outputDir}/${file.relPath}`;
-          const content = await compilerCtx.fs.readFile(filePath);
-          const transformedContent = await applyTransformers(file.relPath, content, tagNames);
-          await compilerCtx.fs.writeFile(filePath, transformedContent);
-        }
+      // Write the transformed content back to the in-memory file system
+      await compilerCtx.fs.writeFile(filePath, transformedContent);
+      // buildCtx.debug(`Patched in-memory file: ${filePath}`);
+
+      const filePath2 = `${outputDir}/${cmp.tagName}2.js`; // Adjust file naming as needed
+      const originalContent2 = await compilerCtx.fs.readFile(filePath2).catch(() => '');
+      if (originalContent2 !== undefined) {
+        const transformedContent2 = await applyTransformers(filePath2, originalContent2, tagNames);
+        await compilerCtx.fs.writeFile(filePath2, transformedContent2);
+        // buildCtx.debug(`Patched in-memory file: ${filePath2}`);
       }
     }
   },
