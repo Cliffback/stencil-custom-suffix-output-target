@@ -12,7 +12,7 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
     if (!_config.extras?.tagNameTransform) return;
 
     const outputDir = _config.outputTargets?.find(target => target.type === 'dist-custom-elements')?.dir;
-    if (outputDir !== undefined) return;
+    if (outputDir === undefined) return;
 
     const tagNames = buildCtx.components.map(cmp => cmp.tagName);
 
