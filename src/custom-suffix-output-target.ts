@@ -1,7 +1,6 @@
 import { Config } from '@stencil/core';
 import { BuildCtx, CompilerCtx, OutputTargetCustom } from '@stencil/core/internal';
 import ts from 'typescript';
-import * as d from '@stencil/core/internal';
 import postcss from 'postcss';
 import postcssSafeParser from 'postcss-safe-parser';
 import postcssSelectorParser, { Root } from 'postcss-selector-parser';
@@ -13,7 +12,7 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
     if (!_config.extras?.tagNameTransform) return;
 
     const outputDir = _config.outputTargets?.find(target => target.type === 'dist-custom-elements')?.dir;
-    if (!outputDir) return;
+    if (outputDir !== undefined) return;
 
     const tagNames = buildCtx.components.map(cmp => cmp.tagName);
 
