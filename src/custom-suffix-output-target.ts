@@ -117,28 +117,23 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
         }
 
         // Handle cases like `if (elem.tagName === "STN-ICON")`
-        if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
-          const left = node.left;
-          const right = node.right;
-
-          if (ts.isPropertyAccessExpression(left) && left.name.text === 'tagName' && ts.isStringLiteral(right)) {
-            const tagName = right.text;
-            if (tagNames.some(tag => tag.toLowerCase() === tagName.toLowerCase())) {
-              const customTagNameExpression = ts.factory.createBinaryExpression(
-                ts.factory.createStringLiteral(tagName),
-                ts.SyntaxKind.PlusToken,
-                ts.factory.createCallExpression(
-                  ts.factory.createPropertyAccessExpression(
-                    ts.factory.createCallExpression(ts.factory.createIdentifier('getCustomSuffix'), undefined, []),
-                    ts.factory.createIdentifier('toUpperCase'),
-                  ),
-                  undefined,
-                  [],
+        if (ts.isStringLiteral(node)) {
+          const tagName = node.text;
+          if (tagNames.some(tag => tag.toUpperCase() === tagName)) {
+            const customTagNameExpression = ts.factory.createBinaryExpression(
+              node,
+              ts.SyntaxKind.PlusToken,
+              ts.factory.createCallExpression(
+                ts.factory.createPropertyAccessExpression(
+                  ts.factory.createCallExpression(ts.factory.createIdentifier('getCustomSuffix'), undefined, []),
+                  ts.factory.createIdentifier('toUpperCase'),
                 ),
-              );
+                undefined,
+                [],
+              ),
+            );
 
-              newNode = ts.factory.updateBinaryExpression(node, left, node.operatorToken, customTagNameExpression);
-            }
+            return customTagNameExpression;
           }
         }
 
