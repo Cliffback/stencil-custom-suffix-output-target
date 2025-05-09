@@ -33,7 +33,6 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
 
 async function applyTransformers(fileName: string, content: string, tagNames: string[]): Promise<string> {
   const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest);
-  let didTransform = false;
 
   const transformer = (context: ts.TransformationContext) => {
     return (rootNode: ts.SourceFile) => {
@@ -166,25 +165,14 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
           }
         }
 
-        didTransform = newNode !== node;
-
         return ts.visitEachChild(newNode, visit, context);
       }
-      return ts.visitNode(rootNode, visit) as ts.SourceFile;
-    };
-  };
-
-  const addRuntimeFunctionTransformer = () => {
-    return (rootNode: ts.SourceFile) => {
       const newSourceFile = ts.factory.updateSourceFile(rootNode, [...rootNode.statements, runtimeFunction]);
-      return newSourceFile;
+      return ts.visitNode(newSourceFile, visit) as ts.SourceFile;
     };
   };
 
-  let result = ts.transform(sourceFile, [transformer]);
-  if (didTransform) {
-    result = ts.transform(result.transformed[0], [addRuntimeFunctionTransformer]);
-  }
+  const result = ts.transform(sourceFile, [transformer]);
   const printer = ts.createPrinter();
   const transformedCode = printer.printFile(result.transformed[0]);
 
