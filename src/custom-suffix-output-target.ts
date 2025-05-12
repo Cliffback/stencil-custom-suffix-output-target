@@ -162,7 +162,7 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
 
         return ts.visitEachChild(newNode, visit, context);
       }
-      const newSourceFile = ts.factory.updateSourceFile(rootNode, [...rootNode.statements, runtimeFunction]);
+      const newSourceFile = ts.factory.updateSourceFile(rootNode, [configImport, ...rootNode.statements, runtimeFunction]);
       return ts.visitNode(newSourceFile, visit) as ts.SourceFile;
     };
   };
@@ -211,5 +211,13 @@ const runtimeFunction = ts.factory.createFunctionDeclaration(
   undefined,
   [],
   undefined,
-  ts.factory.createBlock([ts.factory.createReturnStatement(ts.factory.createStringLiteral('-test'))]),
+  ts.factory.createBlock([
+    ts.factory.createReturnStatement(ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier('config'), ts.factory.createIdentifier('suffix'))),
+  ]),
+);
+
+const configImport = ts.factory.createImportDeclaration(
+  undefined,
+  ts.factory.createImportClause(false, ts.factory.createIdentifier('config'), undefined),
+  ts.factory.createStringLiteral('../sds-config.json'),
 );
