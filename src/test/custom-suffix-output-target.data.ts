@@ -70,7 +70,8 @@ export { MyComponent, defineCustomElement };
 
 //# sourceMappingURL=my-component.js.map
 `,
-  expectedOutput: `import { proxyCustomElement, HTMLElement, h, Host } from "@stencil/core/internal/client";
+  expectedOutput: `import config from "../sds-config.json";
+import { proxyCustomElement, HTMLElement, h, Host } from "@stencil/core/internal/client";
 import { d as defineCustomElement$5 } from "./stn-button2.js";
 import { d as defineCustomElement$4 } from "./stn-checkbox2.js";
 import { d as defineCustomElement$3 } from "./stn-icon2.js";
@@ -132,9 +133,9 @@ function defineCustomElement$1() {
         }
     });
 }
-function getCustomSuffix() { return "-test"; }
 const MyComponent = MyComponent$1;
 const defineCustomElement = defineCustomElement$1;
 export { MyComponent, defineCustomElement };
+function getCustomSuffix() { return config.suffix; }
 `,
 };
