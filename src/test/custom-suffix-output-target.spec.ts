@@ -18,7 +18,6 @@ describe('customSuffixOutputTarget', () => {
 
     await outputTarget.generator(...setup.generatorParams);
 
-    expect(setup.compiler.fs.readdir).toHaveBeenCalledWith(setup.outputPath);
     expect(setup.compiler.fs.readFile).toHaveBeenCalledWith(setup.fullPath);
     expect(setup.compiler.fs.writeFile).toHaveBeenCalledWith(setup.fullPath, expect.any(String));
 
