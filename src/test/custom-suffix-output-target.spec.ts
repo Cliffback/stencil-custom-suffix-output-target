@@ -31,7 +31,7 @@ describe('customSuffixOutputTarget', () => {
       const outputTarget = customSuffixOutputTarget();
       await outputTarget.generator(...setup.generatorParams);
 
-      expect(setup.compiler.fs.readdir).not.toHaveBeenCalled();
+      expect(setup.compiler.fs.readFile).not.toHaveBeenCalled();
     }
   });
 });
