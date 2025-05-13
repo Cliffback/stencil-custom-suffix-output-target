@@ -75,7 +75,6 @@ export const mockSetup = (setup: TestComponentSetup) => {
     ...setup.compiler,
     fs: {
       ...setup.compiler.fs,
-      readdir: jest.fn().mockResolvedValue([{ relPath: setup.tagName + '.js' }]),
       readFile: jest.fn((filePath: string) => {
         if (filePath.endsWith('2.js')) {
           return Promise.resolve(undefined);
