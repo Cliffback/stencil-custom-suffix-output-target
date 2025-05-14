@@ -58,7 +58,7 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
             const customTagNameExpression = ts.factory.createBinaryExpression(
               ts.factory.createStringLiteral(componentName.text),
               ts.SyntaxKind.PlusToken,
-              ts.factory.createCallExpression(ts.factory.createIdentifier('getCustomSuffix'), undefined, []),
+              ts.factory.createIdentifier('suffix'),
             );
 
             newNode = ts.factory.updateCallExpression(node, node.expression, node.typeArguments, [customTagNameExpression, ...node.arguments.slice(1)]);
@@ -104,7 +104,7 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
                 lastIndex = matches[0].end;
                 templateSpans.push(
                   ts.factory.createTemplateSpan(
-                    ts.factory.createCallExpression(ts.factory.createIdentifier('getCustomSuffix'), undefined, []),
+                    ts.factory.createIdentifier('suffix'),
                     matches.length === 1
                       ? ts.factory.createTemplateTail(selectorText.slice(lastIndex))
                       : ts.factory.createTemplateMiddle(selectorText.slice(lastIndex, matches[1].start) + matches[1].tag),
@@ -114,7 +114,7 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
                   lastIndex = matches[j].end;
                   templateSpans.push(
                     ts.factory.createTemplateSpan(
-                      ts.factory.createCallExpression(ts.factory.createIdentifier('getCustomSuffix'), undefined, []),
+                      ts.factory.createIdentifier('suffix'),
                       j === matches.length - 1
                         ? ts.factory.createTemplateTail(selectorText.slice(lastIndex))
                         : ts.factory.createTemplateMiddle(selectorText.slice(lastIndex, matches[j + 1].start) + matches[j + 1].tag),
@@ -136,10 +136,7 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
               node,
               ts.SyntaxKind.PlusToken,
               ts.factory.createCallExpression(
-                ts.factory.createPropertyAccessExpression(
-                  ts.factory.createCallExpression(ts.factory.createIdentifier('getCustomSuffix'), undefined, []),
-                  ts.factory.createIdentifier('toUpperCase'),
-                ),
+                ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier('suffix'), ts.factory.createIdentifier('toUpperCase')),
                 undefined,
                 [],
               ),
@@ -161,11 +158,7 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
             // Replace the tagname with tagName + getCustomSuffix()
             const [firstArg, ...restArgs] = node.arguments;
             if (firstArg && ts.isIdentifier(firstArg) && firstArg.text === 'tagName') {
-              const newArgument = ts.factory.createBinaryExpression(
-                firstArg,
-                ts.SyntaxKind.PlusToken,
-                ts.factory.createCallExpression(ts.factory.createIdentifier('getCustomSuffix'), undefined, []),
-              );
+              const newArgument = ts.factory.createBinaryExpression(firstArg, ts.SyntaxKind.PlusToken, ts.factory.createIdentifier('suffix'));
 
               newNode = ts.factory.updateCallExpression(node, node.expression, node.typeArguments, [newArgument, ...restArgs]);
             }
@@ -174,7 +167,7 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
 
         return ts.visitEachChild(newNode, visit, context);
       }
-      const newSourceFile = ts.factory.updateSourceFile(rootNode, [configImport, ...rootNode.statements, runtimeFunction]);
+      const newSourceFile = ts.factory.updateSourceFile(rootNode, [configImport, ...rootNode.statements]);
       return ts.visitNode(newSourceFile, visit) as ts.SourceFile;
     };
   };
@@ -200,7 +193,7 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
             const parsedSelector = postcssSelectorParser().astSync(sel) as unknown as Root;
             parsedSelector.walkTags(tag => {
               if (tagNames.includes(tag.value)) {
-                tag.value += '${getCustomSuffix()}';
+                tag.value += '${suffix}';
               }
             });
             return parsedSelector.toString();
@@ -214,17 +207,6 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
   }
   return code;
 }
-
-// TODO: Maybe get the suffix from a js config file in the consuming project, like .custom-suffix.js
-const runtimeFunction = ts.factory.createFunctionDeclaration(
-  undefined,
-  undefined,
-  'getCustomSuffix',
-  undefined,
-  [],
-  undefined,
-  ts.factory.createBlock([ts.factory.createReturnStatement(ts.factory.createIdentifier('suffix'))]),
-);
 
 const configImport = ts.factory.createImportDeclaration(
   undefined,
