@@ -4,6 +4,7 @@ import ts from 'typescript';
 import postcss from 'postcss';
 import postcssSafeParser from 'postcss-safe-parser';
 import postcssSelectorParser, { Root } from 'postcss-selector-parser';
+import { CustomSuffixHelper, fileName, relativePath } from './custom-suffix-utils';
 
 export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   type: 'custom',
@@ -11,7 +12,8 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   generator: async (_config: Config, compilerCtx: CompilerCtx, buildCtx: BuildCtx) => {
     if (!_config.extras?.tagNameTransform) return;
 
-    const outputDir = _config.outputTargets?.find(target => target.type === 'dist-custom-elements')?.dir;
+    const { outputDir, configPath } = new CustomSuffixHelper(_config);
+
     if (outputDir === undefined) return;
 
     const tagNames = buildCtx.components.map(cmp => cmp.tagName);
@@ -28,6 +30,16 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
 
       await compilerCtx.fs.writeFile(filePath, transformedContent);
     }
+
+    // Generate the custom suffix config file
+    if (fileName === undefined || typeof fileName !== 'string') {
+      buildCtx.debug('Custom suffix config file name is undefined');
+      return;
+    }
+    const configContent = JSON.stringify('');
+
+    await compilerCtx.fs.writeFile(configPath, configContent);
+    buildCtx.debug('Generated custom suffix config file');
   },
 });
 
@@ -211,13 +223,11 @@ const runtimeFunction = ts.factory.createFunctionDeclaration(
   undefined,
   [],
   undefined,
-  ts.factory.createBlock([
-    ts.factory.createReturnStatement(ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier('config'), ts.factory.createIdentifier('suffix'))),
-  ]),
+  ts.factory.createBlock([ts.factory.createReturnStatement(ts.factory.createIdentifier('suffix'))]),
 );
 
 const configImport = ts.factory.createImportDeclaration(
   undefined,
-  ts.factory.createImportClause(false, ts.factory.createIdentifier('config'), undefined),
-  ts.factory.createStringLiteral('../sds-config.json'),
+  ts.factory.createImportClause(false, ts.factory.createIdentifier('suffix'), undefined),
+  ts.factory.createStringLiteral(relativePath + fileName),
 );
