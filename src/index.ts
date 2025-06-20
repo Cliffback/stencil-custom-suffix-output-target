@@ -1,1 +1,1 @@
-export { customSuffixOutputTarget } from './custom-suffix-output-target';
+export { customSuffixOutputTarget } from './custom-suffix-output-target.ts';
