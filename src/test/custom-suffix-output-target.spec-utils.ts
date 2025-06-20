@@ -1,26 +1,7 @@
 import * as d from '@stencil/core/internal';
 import { mockModule, mockCompilerCtx, mockBuildCtx, mockValidatedConfig } from '@stencil/core/testing';
-import { testData } from './custom-suffix-output-target.data';
+import { testData } from './custom-suffix-output-target.data.ts';
 import { FsWriteResults } from '@stencil/core/compiler/sys/in-memory-fs';
-
-// const setup = () => {
-//   const sys = mockCompilerSystem();
-//   const config: d.ValidatedConfig = mockValidatedConfig({
-//     buildAppCore: true,
-//     buildEs5: true,
-//     configPath: '/testing-path',
-//     namespace: 'TestApp',
-//     outputTargets: [{ type: 'dist-custom-elements' }],
-//     srcDir: '/scripts/test',
-//     sys,
-//   });
-//   const compilerCtx = mockCompilerCtx(config);
-//   const buildCtx = mockBuildCtx(config, compilerCtx);
-//
-//   compilerCtx.moduleMap.set('test', mockModule());
-//
-//   return { config, compilerCtx, buildCtx };
-// };
 
 export class TestComponentSetup {
   tagName: string;

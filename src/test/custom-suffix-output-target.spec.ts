@@ -1,6 +1,6 @@
 import { customSuffixOutputTarget } from '../custom-suffix-output-target';
 import { testData } from './custom-suffix-output-target.data';
-import { TestComponentSetup, mockSetup } from './custom-suffix-output-target.spec-utils';
+import { TestComponentSetup, mockSetup } from './custom-suffix-output-target.spec-utils.ts';
 
 describe('customSuffixOutputTarget', () => {
   const setup = new TestComponentSetup({

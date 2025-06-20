@@ -4,7 +4,7 @@ import ts from 'typescript';
 import postcss from 'postcss';
 import postcssSafeParser from 'postcss-safe-parser';
 import postcssSelectorParser, { Root } from 'postcss-selector-parser';
-import { CustomSuffixHelper, fileName, relativePath } from './custom-suffix-utils';
+import { CustomSuffixHelper, fileName, relativePath } from './custom-suffix-utils.ts';
 import { parse, stringify, SelectorType } from 'css-what';
 
 export const customSuffixOutputTarget = (): OutputTargetCustom => ({
