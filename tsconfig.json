@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "declaration": false,
+    "outDir": "dist",
+    "esModuleInterop": true,
+    
+    "isolatedModules": true,
+
+    "resolveJsonModule": true,
+
+    "allowSyntheticDefaultImports": true,
+
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "**/test/**", "dist"]
+}
+
