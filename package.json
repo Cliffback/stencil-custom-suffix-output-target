@@ -1,0 +1,40 @@
+{
+  "name": "stencil-custom-suffix-output-target",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cliffback/stencil-custom-suffix-output-target.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Cliffback/stencil-custom-suffix-output-target/issues"
+  },
+  "homepage": "https://github.com/Cliffback/stencil-custom-suffix-output-target#readme",
+  "dependencies": {
+    "@stencil/core": "^4.35.1",
+    "css-what": "^6.1.0",
+    "postcss": "^8.5.6",
+    "postcss-safe-parser": "^7.0.1",
+    "postcss-selector-parser": "^7.1.0",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/postcss-safe-parser": "^5.0.4",
+    "jest": "^30.0.2",
+    "ts-jest": "^29.4.0"
+  }
+}
