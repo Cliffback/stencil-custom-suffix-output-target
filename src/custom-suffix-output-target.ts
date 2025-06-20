@@ -5,6 +5,7 @@ import postcss from 'postcss';
 import postcssSafeParser from 'postcss-safe-parser';
 import postcssSelectorParser, { Root } from 'postcss-selector-parser';
 import { CustomSuffixHelper, fileName, relativePath } from './custom-suffix-utils';
+import { parse, stringify, SelectorType } from 'css-what';
 
 export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   type: 'custom',
@@ -67,68 +68,51 @@ async function applyTransformers(fileName: string, content: string, tagNames: st
 
         // Find all instances of query selectors targeting the tagname and add the custom suffix as a template literal
         if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+          const SUFFIX_PLACEHOLDER = '__SUFFIX__';
           const methodName = node.expression.name.text;
+
           if ((methodName === 'querySelector' || methodName === 'querySelectorAll') && node.arguments.length > 0) {
             const selectorArgument = node.arguments[0];
 
             if (ts.isStringLiteral(selectorArgument)) {
               const selectorText = selectorArgument.text;
-              // Find all matches of any tagName in selectorText, preferring the longest at each position
-              const matches: { tag: string; start: number; end: number }[] = [];
-              let i = 0;
-              while (i < selectorText.length) {
-                let foundTag: string | undefined;
-                let foundLength = 0;
-                for (const tagName of tagNames) {
-                  if (
-                    selectorText.startsWith(tagName, i) &&
-                    tagName.length > foundLength &&
-                    (i === 0 || !/[.#]/.test(selectorText[i - 1])) // Ensure not preceded by . or #
-                  ) {
-                    foundTag = tagName;
-                    foundLength = tagName.length;
-                  }
-                }
-                if (foundTag !== undefined) {
-                  matches.push({ tag: foundTag, start: i, end: i + foundLength });
-                  i += foundLength;
-                } else {
-                  i++;
-                }
-              }
+              const parsed = parse(selectorText);
 
-              if (matches.length > 0) {
-                let lastIndex = 0;
-                const templateSpans: ts.TemplateSpan[] = [];
-                const templateHead = selectorText.slice(0, matches[0].start) + matches[0].tag;
-                lastIndex = matches[0].end;
-                templateSpans.push(
-                  ts.factory.createTemplateSpan(
-                    ts.factory.createIdentifier('suffix'),
-                    matches.length === 1
-                      ? ts.factory.createTemplateTail(selectorText.slice(lastIndex))
-                      : ts.factory.createTemplateMiddle(selectorText.slice(lastIndex, matches[1].start) + matches[1].tag),
-                  ),
-                );
-                for (let j = 1; j < matches.length; j++) {
-                  lastIndex = matches[j].end;
-                  templateSpans.push(
+              let modified = false;
+
+              const reconstructed = parsed.map(subSelector =>
+                subSelector.map(token => {
+                  if (token.type === SelectorType.Tag && tagNames.includes(token.name)) {
+                    modified = true;
+                    return { ...token, name: `${token.name}${SUFFIX_PLACEHOLDER}` };
+                  }
+                  return token;
+                }),
+              );
+
+              if (modified) {
+                const selectorWithPlaceholder = stringify(reconstructed); // e.g., "div > my-tag__SUFFIX__ + other-tag"
+                const parts = selectorWithPlaceholder.split(SUFFIX_PLACEHOLDER);
+
+                const templateHead = ts.factory.createTemplateHead(parts[0]);
+                const templateSpans = parts
+                  .slice(1)
+                  .map((part, index) =>
                     ts.factory.createTemplateSpan(
                       ts.factory.createIdentifier('suffix'),
-                      j === matches.length - 1
-                        ? ts.factory.createTemplateTail(selectorText.slice(lastIndex))
-                        : ts.factory.createTemplateMiddle(selectorText.slice(lastIndex, matches[j + 1].start) + matches[j + 1].tag),
+                      index === parts.length - 2 ? ts.factory.createTemplateTail(part) : ts.factory.createTemplateMiddle(part),
                     ),
                   );
-                }
-                const customTagNameExpression = ts.factory.createTemplateExpression(ts.factory.createTemplateHead(templateHead), templateSpans);
-                newNode = ts.factory.updateCallExpression(node, node.expression, node.typeArguments, [customTagNameExpression, ...node.arguments.slice(1)]);
+
+                const templateExpression = ts.factory.createTemplateExpression(templateHead, templateSpans);
+
+                newNode = ts.factory.updateCallExpression(node, node.expression, node.typeArguments, [templateExpression, ...node.arguments.slice(1)]);
               }
             }
           }
         }
 
-        // Handle cases like `if (elem.tagName === "STN-ICON")`
+        // Handle cases like `if (elem.tagName === "MY-TAG")`
         if (ts.isStringLiteral(node)) {
           const tagName = node.text;
           if (tagNames.some(tag => tag.toUpperCase() === tagName)) {
