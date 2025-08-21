@@ -62,7 +62,10 @@ const myCSS = \`
 ```
 
 ## 📦 Installation in the Component Library
-Project is not on npm yet, so you need to clone the repo and include manually in your source code for now
+Install from npm:
+```bash
+npm install -D custom-suffix-output-target
+```
 
 Add the output target to your Stencil project:
 ```typescript
@@ -79,7 +82,7 @@ export const config: Config = {
   ],
 };
 ```
-
+## 📂 Custom Suffix Configuration
 Find a way to update the `custom-suffix.json` file for the consumuing projects of your component library. 
 
 How we do it is add a bin script to the package.json of the component library that updates the suffix in the `custom-suffix.json` file based on the version of the component library. For example:
