@@ -138,3 +138,9 @@ In the consuming project `package.json`, add the script to run `postinstall` to 
     "postinstall": "set-custom-suffix --set my-project"
 }
 ```
+
+After this, the remaining step is to update all local usages of the component tags to include the suffix. This can be done with a simple find-and-replace across your codebase, or by using a script that updates all instances of the component tags to include the suffix.
+
+In our Angular projects, we have used angular schematics to automate this process.
+
+
