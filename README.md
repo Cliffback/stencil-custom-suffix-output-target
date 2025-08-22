@@ -138,10 +138,10 @@ const myCSS = `
 
 ## 📦 Installation
 
-Install as a dev dependency:
+Install as a dependency (If you're not relying on the `set-custom-suffix` script, or have the package installed in your consuming project, you can install it as a dev dependency in your library):
 
 ```bash
-npm install -D custom-suffix-output-target
+npm install custom-suffix-output-target
 ```
 
 Add it to your **stencil.config.ts**:
@@ -172,12 +172,13 @@ This is done by writing a `custom-suffix.json` file to the library’s `dist/com
 
 Example (`dist/custom-suffix.json`):
 ```json
-"-checkout"
+"-your-suffix"
 ```
 
-Practical setup for consumers:
+This package provides a simple script that automates this that can be added to your project's `package.json` (requires `stencil-custom-suffix-output-target` to be installed as a dependency in your library, or as a dev dependency in your consuming project):
+
 ```bash
-echo '"-checkout"' > node_modules/your-lib/dist/custom-suffix.json
+"postinstall": "set-custom-suffix --set your-suffix --target @your-org/your-library"
 ```
 ---
 
