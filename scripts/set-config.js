@@ -1,14 +1,10 @@
 #!/usr/bin/env node
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable no-undef */
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { spawn } from 'child_process';
 
-// Parse arguments using yargs
 const argv = yargs(hideBin(process.argv))
   .usage('Usage: $0 --set <value>')
   .option('set', {
