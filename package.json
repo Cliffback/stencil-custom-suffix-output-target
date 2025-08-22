@@ -1,6 +1,6 @@
 {
   "name": "stencil-custom-suffix-output-target",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,8 +14,12 @@
     "url": "git+https://github.com/Cliffback/stencil-custom-suffix-output-target.git"
   },
   "files": [
-    "dist"
+    "dist",
+    "scripts"
   ],
+  "bin": {
+    "set-custom-suffix": "./scripts/set-custom-suffix.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
