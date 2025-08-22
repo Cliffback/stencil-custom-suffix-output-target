@@ -35,39 +35,35 @@ Problem:
 
 ## 🏗 Microfrontend Scenario
 
+<details>
+<summary>📊 Show Mermaid Diagram</summary>
+    
 ```mermaid
 flowchart TD
     %% Libraries
-    L1["Library v1.0<br>🔵 Blue Button"] --> A["Checkout Page (App A)<br>Library v1.0<br>🔵 Blue Button"]
-    L2["Library v2.3<br>🟢 Green Button"] --> B["Admin Page (App B)<br>Library v2.3<br>🟢 Green Button"]
+    L1["Library v1.0<br>🔵 Blue Button"] --> A["App 1 (App A)<br>Library v1.0<br>🔵 Blue Button"]
+    L2["Library v2.3<br>🟢 Green Button"] --> B["App 2 (App B)<br>Library v2.3<br>🟢 Green Button"]
     A --> Shared["Shared Microfrontend Environment"]
     B --> Shared["Shared Microfrontend Environment"]
 
     %% First action: Checkout
-    Shared --> clickCheckout["Visit Checkout page<br>🔵 Button v1.0"]
+    Shared --> loadApp1["Load App 1 page<br>🔵 Button v1.0"]
 
     %% Second action: Admin
-    clickCheckout --> clickAdmin["Click Admin page<br>🔵 Button v1.0"]
+    loadApp1 --> clickApp2["Navigate to App 2<br>🔵 Button v1.0"]
 
     %% Third action: Admin
-    clickAdmin --> refreshAdmin["Refresh Admin page<br>🟢 Button v2.3"]
+    clickApp2 --> refreshApp2["Refresh App 2<br>🟢 Button v2.3"]
 
     %% Fourth action: Checkout
-    refreshAdmin --> revisitCheckout["Revisit Checkout page<br>🟢 Button v2.3"]
-
-
-    %% Correct paths with ✅
-    L1 -.✅.-> clickCheckout
-    L2 -.✅.-> refreshAdmin
-
-    %% Incorrect path with ❌
-    L2 -.❌.-> clickAdmin
-    L1 -.❌.-> revisitCheckout
+    refreshApp2 --> revisitApp1["Navigate to App 1<br>🟢 Button v2.3"]
 
     %% Apply colors
     style L1 fill:#0052cc
     style L2 fill:#1e7e34 
 ```
+
+</details>
 
 - **Without suffixing:** both apps try to register `<my-button>` → 💥 conflict.  
 - **With suffixing:** App A gets `<my-button-checkout>`, App B gets `<my-button-admin>` → ✅ no conflicts, both versions coexist.
