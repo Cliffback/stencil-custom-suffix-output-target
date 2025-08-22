@@ -34,7 +34,6 @@ Problem:
 ---
 
 ## 🏗 Microfrontend Scenario
-
 <details>
 <summary>📊 Show Mermaid Diagram</summary>
     
