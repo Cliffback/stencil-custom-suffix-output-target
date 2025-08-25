@@ -33,7 +33,7 @@ let pkgEntry;
 try {
   pkgEntry = require.resolve(target);
 } catch (err) {
-  console.error(`ÔØî Could not resolve target package "${target}".`);
+  console.error(`Could not resolve target package "${target}".`);
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);
 }
@@ -44,14 +44,14 @@ const configFilePath = path.resolve(pkgDir, 'custom-suffix.json');
 try {
   const distDir = path.dirname(configFilePath);
   if (!fs.existsSync(distDir)) {
-    console.error(`ÔØî Dist folder not found: ${distDir}`);
+    console.error(`Dist folder not found: ${distDir}`);
     process.exit(1);
   }
 
   fs.writeFileSync(configFilePath, JSON.stringify(suffix, null, 2));
   console.log(`custom-suffix config updated successfully for "${target}"\n` + `new suffix set: "${suffix}"\n` + `file written to: ${configFilePath}`);
 } catch (err) {
-  console.error(`ÔØî Failed to write config file at ${configFilePath}`);
+  console.error(`Failed to write config file at ${configFilePath}`);
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);
 }
