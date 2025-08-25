@@ -9,13 +9,13 @@
 ## 📖 Table of Contents
 - [❓ Why](#-why)
 - [🏗 Microfrontend Scenario](#-microfrontend-scenario)
-- [🔧 How It Works](-how-it-works)
+- [🔧 How It Works](#-how-it-works)
 - [📝 Example](#-example)
 - [📦 Installation](#-installation)
 - [⚡ Configuring the Suffix](#-configuring-the-suffix)
 - [🅰 Angular Wrapper Integration](#%F0%9F%85%B0-angular-wrapper-integration)
 - [🔃 Updating Tag Names](#-updating-tag-names)
-- [❗ Limitations](-limitations)
+- [❗ Limitations](#-limitations)
 - [❓ FAQ](#-faq)
 
 ---
