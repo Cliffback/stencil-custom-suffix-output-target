@@ -5,7 +5,7 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { createRequire } from 'module';
 const argv = yargs(hideBin(process.argv))
-  .usage('Usage: $0 --set <value> --target <package> --angularPath <path>')
+  .usage('Usage: $0 --set <value> --target <package> --angular <package>')
   .option('set', {
     alias: 's',
     type: 'string',
@@ -35,6 +35,7 @@ const suffix = '-' + set;
 
 const require = createRequire(import.meta.url);
 
+// Set the suffix in the target package
 let targetPkgEntry;
 try {
   targetPkgEntry = require.resolve(target);
@@ -66,6 +67,7 @@ if (!angular) {
   process.exit(0);
 }
 
+// Patch the angular wrapper package
 let angularPkgEntry;
 try {
   angularPkgEntry = require.resolve(angular);
@@ -94,8 +96,8 @@ const componentRegex = `${tagRegex}(\\/\\*${originalSelectorComment}${tagRegex}\
 
 // Lookaheads to find location of component tags. Is combined with componentRegex.
 const lookaheadRegexList = [
-    `(?<=selector:\\s)`, // used in i0.╔ÁsetClassMetadata: <selector: 'my-button',>
-    `(?<=selectors:\\s\\[\\[)`, // used in i0.╔Á╔ÁdefineComponent: <selectors: [['my-button']],>
+    `(?<=selector:\\s)`, // used in i0.ɵsetClassMetadata: <selector: 'my-button',>
+    `(?<=selectors:\\s\\[\\[)`, // used in i0.ɵɵdefineComponent: <selectors: [['my-button']],>
     `(?<=ɵɵComponentDeclaration<[^,]+,\\s*)`, // used in i0.ɵɵComponentDeclaration<MyButton, "my-button",>
 ]
 
