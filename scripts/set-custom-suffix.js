@@ -128,5 +128,5 @@ filesToPatch.forEach(f => {
   transformTagInFile(path.join(angularPkgDir, './' + f));
 });
 
-console.log(`Angular wrapper patched successfully for "${angular}"\n`);
+console.log(`\nAngular wrapper patched successfully for "${angular}"`);
 console.log(`Files patched: ${filesToPatch.join(', ')}\n`);
