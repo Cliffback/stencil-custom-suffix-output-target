@@ -96,7 +96,7 @@ const componentRegex = `${tagRegex}(\\/\\*${originalSelectorComment}${tagRegex}\
 const lookaheadRegexList = [
     `(?<=selector:\\s)`, // used in i0.╔ÁsetClassMetadata: <selector: 'my-button',>
     `(?<=selectors:\\s\\[\\[)`, // used in i0.╔Á╔ÁdefineComponent: <selectors: [['my-button']],>
-    `(?<=ɵɵComponentDeclaration<[^,]+,\\s*)`, // used in i0.╔Á╔ÁComponentDeclaration<MyButton, "my-button",>
+    `(?<=ɵɵComponentDeclaration<[^,]+,\\s*)`, // used in i0.ɵɵComponentDeclaration<MyButton, "my-button",>
 ]
 
 // Using a lookahead for the tag name, finds all matches and replaces with transformed selector.
