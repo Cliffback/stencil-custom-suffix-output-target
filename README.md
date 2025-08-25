@@ -14,7 +14,7 @@
 - [📦 Installation](#-installation)
 - [⚡ Configuring the Suffix](#-configuring-the-suffix)
 - [🅰 Angular Wrapper Integration](#%F0%9F%85%B0-angular-wrapper-integration)
-- [🏷️ Updating Tag Names](#-updateing-tag-names)
+- [🏷️ Updating Tag Names](#-updating-tag-names)
 - [⚠️ Limitations](%EF%B8%8F-limitations)
 - [❓ FAQ](#-faq)
 
