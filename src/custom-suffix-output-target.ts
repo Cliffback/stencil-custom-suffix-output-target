@@ -251,7 +251,8 @@ async function applyTransformers(
 async function processCSS(code: string, tagNames: string[]): Promise<string> {
   const cssRegex = /const\s+(\w+Css)\s*=\s*"((?:\\.|[^"\\])*)"/g;
   let match: RegExpExecArray | null;
-  while ((match = cssRegex.exec(code)) !== null) {
+  match = cssRegex.exec(code);
+  while (match !== null) {
     const [fullMatch, varName, cssContent] = match as unknown as [
       string,
       string,
@@ -266,6 +267,7 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
             ) as unknown as Root;
             parsedSelector.walkTags((tag) => {
               if (tagNames.includes(tag.value)) {
+                // biome-ignore lint/suspicious/noTemplateCurlyInString: This is intended to create a template literal in the final output
                 tag.value += '${suffix}';
               }
             });
@@ -277,6 +279,7 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
 
     const updatedInitializer = `\`${result.css}\``;
     code = code.replace(fullMatch, `const ${varName} = ${updatedInitializer}`);
+    match = cssRegex.exec(code);
   }
   return code;
 }
