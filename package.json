@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "lint": "echo \"No linting configured\""
+    "lint": "biome check"
   },
   "repository": {
     "type": "git",
