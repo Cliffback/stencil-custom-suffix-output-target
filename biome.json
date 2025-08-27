@@ -12,12 +12,6 @@
     "enabled": true,
     "indentStyle": "space"
   },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true
-    }
-  },
   "javascript": {
     "formatter": {
       "quoteStyle": "single"
@@ -33,7 +27,7 @@
   },
   "json": {
     "formatter": {
-      "enabled": true
+      "enabled": false
     }
   }
 }

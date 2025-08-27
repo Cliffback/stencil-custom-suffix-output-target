@@ -1,7 +1,12 @@
-import * as d from '@stencil/core/internal';
-import { mockModule, mockCompilerCtx, mockBuildCtx, mockValidatedConfig } from '@stencil/core/testing';
+import type { FsWriteResults } from '@stencil/core/compiler/sys/in-memory-fs';
+import type * as d from '@stencil/core/internal';
+import {
+  mockBuildCtx,
+  mockCompilerCtx,
+  mockModule,
+  mockValidatedConfig,
+} from '@stencil/core/testing';
 import { testData } from './custom-suffix-output-target.data.ts';
-import { FsWriteResults } from '@stencil/core/compiler/sys/in-memory-fs';
 
 export class TestComponentSetup {
   tagName: string;
@@ -13,7 +18,11 @@ export class TestComponentSetup {
   fileSystem: d.CompilerSystem;
   docs: d.JsonDocs;
 
-  constructor({ tagName, dependencies, outputPath }: { tagName: string; dependencies: string[]; outputPath: string }) {
+  constructor({
+    tagName,
+    dependencies,
+    outputPath,
+  }: { tagName: string; dependencies: string[]; outputPath: string }) {
     this.tagName = tagName;
     this.dependencies = dependencies;
     this.outputPath = outputPath;
@@ -23,7 +32,12 @@ export class TestComponentSetup {
     return `${this.outputPath}/${this.tagName}.js`;
   }
 
-  get generatorParams(): [d.ValidatedConfig, d.CompilerCtx, d.BuildCtx, d.JsonDocs] {
+  get generatorParams(): [
+    d.ValidatedConfig,
+    d.CompilerCtx,
+    d.BuildCtx,
+    d.JsonDocs,
+  ] {
     return [this.config, this.compiler, this.build, this.docs];
   }
 }
@@ -83,12 +97,16 @@ export const mockSetup = (setup: TestComponentSetup) => {
   setup.build = mockBuildCtx(setup.config, setup.compiler);
   setup.build = {
     ...setup.build,
-    components: [setup.tagName, ...setup.dependencies].map(tagName => stubComponentCompilerMeta({ tagName: tagName })),
+    components: [setup.tagName, ...setup.dependencies].map((tagName) =>
+      stubComponentCompilerMeta({ tagName: tagName }),
+    ),
   };
 };
 
 // Function not exported in @stencil/core/internal so we copied it
-const stubComponentCompilerMeta = (overrides: Partial<d.ComponentCompilerMeta> = {}): d.ComponentCompilerMeta => ({
+const stubComponentCompilerMeta = (
+  overrides: Partial<d.ComponentCompilerMeta> = {},
+): d.ComponentCompilerMeta => ({
   assetsDirs: [],
   attachInternalsMemberName: null,
   componentClassName: 'StubCmp',
