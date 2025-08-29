@@ -1,6 +1,6 @@
 # Custom Suffix Output Target for Stencil
 
-> Safely run multiple versions of the same Stencil component library in a **microfrontend** architecture by automatically suffixing component tag names at build time.
+> Safely run multiple versions of the same Stencil component library in a **microfrontend** architecture by automatically suffixing component tag names validated at runtime time.
 
 [![npm version](https://img.shields.io/npm/v/stencil-custom-suffix-output-target.svg)](https://www.npmjs.com/package/stencil-custom-suffix-output-target)  
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
