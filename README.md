@@ -140,14 +140,14 @@ const myCSS = `
 Install as a dependency (If you're not relying on the `set-custom-suffix` script, or have the package installed in your consuming project, you can install it as a dev dependency in your library):
 
 ```bash
-npm install custom-suffix-output-target
+npm install stencil-custom-suffix-output-target
 ```
 
 Add it to your **stencil.config.ts**:
 
 ```ts
 import { Config } from '@stencil/core';
-import { customSuffixOutputTarget } from './scripts/custom-suffix-output-target';
+import { customSuffixOutputTarget } from 'stencil-custom-suffix-output-target';
 
 export const config: Config = {
   extras: {
@@ -167,7 +167,7 @@ export const config: Config = {
 
 Each consuming project must provide its own suffix.  
 
-This is done by writing a `custom-suffix.json` file to the library’s `dist/components` folder at build/deploy time.
+This is done by writing a `custom-suffix.json` file to the library’s `dist` folder at build/deploy time.
 
 Example (`dist/custom-suffix.json`):
 ```json
