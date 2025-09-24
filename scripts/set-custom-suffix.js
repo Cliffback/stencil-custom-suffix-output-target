@@ -191,7 +191,8 @@ try {
   process.exit(1);
 }
 
-const configFilePath = path.resolve(pkgDir, 'dist/custom-suffix.json');
+const distPrefix = fs.existsSync(path.resolve(pkgDir, 'dist')) ? 'dist/' : '';
+const configFilePath = path.resolve(pkgDir, `${distPrefix}custom-suffix.json`);
 
 try {
   const distDir = path.dirname(configFilePath);
@@ -268,9 +269,9 @@ function transformTagInFile(filePath) {
 }
 
 const filesToPatch = [
-  'dist/fesm5.js',
-  'dist/fesm2015.js',
-  'dist/directives/proxies.d.ts',
+  `${distPrefix}fesm5.js`,
+  `${distPrefix}fesm2015.js`,
+  `${distPrefix}directives/proxies.d.ts`,
 ];
 
 filesToPatch.forEach((f) => {
