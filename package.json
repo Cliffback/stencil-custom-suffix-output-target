@@ -1,6 +1,6 @@
 {
   "name": "stencil-custom-suffix-output-target",
-  "version": "1.2.1-experimental.2",
+  "version": "1.2.1-experimental.3",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
