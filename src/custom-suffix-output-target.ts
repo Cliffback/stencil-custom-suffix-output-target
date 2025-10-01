@@ -25,7 +25,7 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
   ) => {
     if (!_config.extras?.tagNameTransform) return;
 
-    const { outputDir, configPath } = new CustomSuffixHelper(_config);
+    const { outputDir, configPath, typesPath } = new CustomSuffixHelper(_config);
 
     if (outputDir === undefined) return;
 
@@ -50,6 +50,17 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
       );
 
       await compilerCtx.fs.writeFile(filePath, transformedContent);
+    }
+
+    // Transform components.d.ts
+    const componentTypes = await compilerCtx.fs.readFile(typesPath).catch(() => undefined);
+
+    if (componentTypes !== undefined) {
+      const transformed = transformDtsInterfaces(typesPath, componentTypes, tagNames);
+      if (transformed !== componentTypes) {
+        await compilerCtx.fs.writeFile(typesPath, transformed);
+        buildCtx.debug?.(`Transformed declaration file: ${typesPath}`);
+      }
     }
 
     // Generate the custom suffix config file
@@ -282,6 +293,84 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
     match = cssRegex.exec(code);
   }
   return code;
+}
+
+/**
+ * Transform .d.ts interfaces so that string-literal keys matching a known Stencil tag
+ * are exteneded by template-literal index signatures as well:
+ *   "stn-button": HTMLStnButtonElement;
+ *   [key: `stn-button${string}`]: HTMLStnButtonElement;
+ *
+ * Works across all interfaces in the file. Keeps the original RHS type intact.
+ */
+
+function transformDtsInterfaces(fileName: string, content: string, tagNames: string[]): string {
+  const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, /*setParentNodes*/ true, ts.ScriptKind.TS);
+
+  const transformer: ts.TransformerFactory<ts.SourceFile> = context => root => {
+    const visit: ts.Visitor = node => {
+      if (ts.isInterfaceDeclaration(node)) {
+        // Track existing index signatures of the form [key: `tag${string}`]
+        const existingIndexKeys = new Set<string>();
+        for (const m of node.members) {
+          if (!ts.isIndexSignatureDeclaration(m) || m.parameters.length === 0) continue;
+          const p = m.parameters[0];
+          const t = p.type;
+          if (t && ts.isTemplateLiteralTypeNode(t)) {
+            const head = t.head.text; // literal head text (e.g., "stn-button")
+            const oneSpan = t.templateSpans.length === 1 && t.templateSpans[0].type.kind === ts.SyntaxKind.StringKeyword && t.templateSpans[0].literal.text === '';
+            if (oneSpan) existingIndexKeys.add(head);
+          }
+        }
+
+        // Rebuild members: drop matching properties, enqueue index signatures to add
+        const newMembers: ts.TypeElement[] = [];
+        const indexPerTag = new Map<string, ts.TypeNode>(); // tag -> RHS type
+
+        for (const m of node.members) {
+          if (ts.isPropertySignature(m) && m.name && ts.isStringLiteral(m.name)) {
+            const tag = m.name.text;
+            if (tagNames.includes(tag)) {
+              const rhs = m.type ?? ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword);
+              if (!existingIndexKeys.has(tag) && !indexPerTag.has(tag)) {
+                indexPerTag.set(tag, rhs);
+              }
+              // Keep the original property
+              newMembers.push(m);
+              // Add the replacement index signature after it
+              const param = ts.factory.createParameterDeclaration(
+                undefined,
+                undefined,
+                ts.factory.createIdentifier('key'),
+                undefined,
+                ts.factory.createTemplateLiteralType(ts.factory.createTemplateHead(`${tag}--`), [
+                  ts.factory.createTemplateLiteralTypeSpan(ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword), ts.factory.createTemplateTail('')),
+                ]),
+                undefined,
+              );
+              const indexSig = ts.factory.createIndexSignature(undefined, [param], rhs);
+              newMembers.push(indexSig);
+              continue;
+            }
+          }
+          newMembers.push(m);
+        }
+
+        return ts.factory.updateInterfaceDeclaration(node, node.modifiers, node.name, node.typeParameters, node.heritageClauses, newMembers);
+      }
+      return ts.visitEachChild(node, visit, context);
+    };
+
+    return ts.visitNode(root, visit) as ts.SourceFile;
+  };
+
+  const result = ts.transform(sourceFile, [transformer]);
+  try {
+    const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+    return printer.printFile(result.transformed[0]);
+  } finally {
+    result.dispose?.();
+  }
 }
 
 const configImport = ts.factory.createImportDeclaration(
