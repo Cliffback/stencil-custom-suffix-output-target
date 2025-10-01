@@ -297,8 +297,11 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
 
 /**
  * Transform .d.ts interfaces so that string-literal keys matching a known Stencil tag
- * are exteneded by template-literal index signatures as well:
+ * are extended by template-literal index signatures as well.
+ *
+ * So instead of just:
  *   "stn-button": HTMLStnButtonElement;
+ * we also get:
  *   [key: `stn-button${string}`]: HTMLStnButtonElement;
  *
  * Works across all interfaces in the file. Keeps the original RHS type intact.
@@ -348,7 +351,7 @@ function transformDtsInterfaces(fileName: string, content: string, tagNames: str
                 ]),
                 undefined,
               );
-              const indexSig = ts.factory.createIndexSignature(undefined, [param], rhs);
+              const indexSig = ts.factory.createIndexSignature(/*modifiers*/ undefined, /*parameters*/ [param], /*type*/ rhs);
               newMembers.push(indexSig);
               continue;
             }
