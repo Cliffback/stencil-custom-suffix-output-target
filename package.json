@@ -19,7 +19,7 @@
     "scripts"
   ],
   "bin": {
-    "set-custom-suffix": "./scripts/set-custom-suffix.js"
+    "set-custom-suffix": "scripts/set-custom-suffix.js"
   },
   "keywords": [],
   "author": "",
