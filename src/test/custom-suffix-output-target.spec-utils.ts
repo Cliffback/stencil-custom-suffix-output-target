@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { FsWriteResults } from '@stencil/core/compiler/sys/in-memory-fs';
 import type * as d from '@stencil/core/internal';
 import {
@@ -6,7 +7,7 @@ import {
   mockModule,
   mockValidatedConfig,
 } from '@stencil/core/testing';
-import { testData } from './custom-suffix-output-target.data.ts';
+import { testData, typesTestData } from './custom-suffix-output-target.data.ts';
 
 export class TestComponentSetup {
   tagName: string;
@@ -30,6 +31,10 @@ export class TestComponentSetup {
 
   get fullPath(): string {
     return `${this.outputPath}/${this.tagName}.js`;
+  }
+
+  get typesPath(): string {
+    return path.join(this.outputPath, '../', 'types/components.d.ts');
   }
 
   get generatorParams(): [
@@ -73,6 +78,11 @@ export const mockSetup = (setup: TestComponentSetup) => {
       readFile: jest.fn((filePath: string) => {
         if (filePath.endsWith('2.js')) {
           return Promise.resolve(undefined);
+        }
+        if (filePath === setup.typesPath) {
+          return Promise.resolve(
+            setup.fileSystem[filePath] ?? typesTestData.input,
+          );
         }
         return Promise.resolve(setup.fileSystem[filePath] ?? testData.input);
       }),

@@ -33,7 +33,6 @@ const set = String(argv.set);
 const target = String(argv.target);
 const angular = String(argv.angular);
 const suffix = `-${set}`;
-
 const require = createRequire(import.meta.url);
 
 // Set the suffix in the target package
