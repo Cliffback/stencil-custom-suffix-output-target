@@ -64,8 +64,8 @@ flowchart TD
 
 </details>
 
-- **Without suffixing:** both apps try to register `<my-button>` → 💥 conflict.  
-- **With suffixing:** App A gets `<my-button-checkout>`, App B gets `<my-button-admin>` → ✅ no conflicts, both versions coexist.
+- **Without suffixing:** both apps try to register `<my-button>` → 💥 conflict.
+- **With suffixing:** App A gets `<my-button--checkout>`, App B gets `<my-button--admin>` → ✅ no conflicts, both versions coexist.
 
 ---
 
@@ -119,14 +119,14 @@ const myCSS = `
 </details>
 
 <details>
-<summary>At runtime (if suffix = "-checkout")</summary>
+<summary>At runtime (if suffix = "--checkout")</summary>
 
 ```ts
-customElements.define('my-button-checkout', MyButton);
-document.querySelector('my-button-checkout');
-h('my-button-checkout');
+customElements.define('my-button--checkout', MyButton);
+document.querySelector('my-button--checkout');
+h('my-button--checkout');
 const myCSS = `
-  my-button-checkout {
+  my-button--checkout {
     /* styles */
   }
 `;
@@ -171,7 +171,7 @@ This is done by writing a `custom-suffix.json` file to the library’s `dist` fo
 
 Example (`dist/custom-suffix.json`):
 ```json
-"-your-suffix"
+"--your-suffix"
 ```
 
 This package provides a simple script that automates this that can be added to your project's `package.json` (requires `stencil-custom-suffix-output-target` to be installed as a dependency in your library, or as a dev dependency in your consuming project):
