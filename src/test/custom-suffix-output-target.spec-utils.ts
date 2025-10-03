@@ -3,9 +3,9 @@ import type * as d from '@stencil/core/internal';
 import {
   mockBuildCtx,
   mockCompilerCtx,
+  mockComponentMeta,
   mockModule,
   mockValidatedConfig,
-  mockComponentMeta,
 } from '@stencil/core/testing';
 import { testData } from './custom-suffix-output-target.data.ts';
 
@@ -103,4 +103,3 @@ export const mockSetup = (setup: TestComponentSetup) => {
     ),
   };
 };
-
