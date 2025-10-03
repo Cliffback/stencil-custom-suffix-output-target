@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { createRequire } from 'module';
+
 const argv = yargs(hideBin(process.argv))
   .usage('Usage: $0 --set <value> --target <package> --angular <package>')
   .option('set', {
@@ -31,7 +32,7 @@ const argv = yargs(hideBin(process.argv))
 const set = String(argv.set);
 const target = String(argv.target);
 const angular = String(argv.angular);
-const suffix = '-' + set;
+const suffix = `-${set}`;
 
 const require = createRequire(import.meta.url);
 
@@ -56,7 +57,11 @@ try {
   }
 
   fs.writeFileSync(configFilePath, JSON.stringify(suffix, null, 2));
-  console.log(`custom-suffix config updated successfully for "${target}"\n` + `new suffix set: "${suffix}"\n` + `file written to: ${configFilePath}`);
+  console.log(
+    `custom-suffix config updated successfully for "${target}"\n` +
+      `new suffix set: "${suffix}"\n` +
+      `file written to: ${configFilePath}`,
+  );
 } catch (err) {
   console.error(`Failed to write config file at ${configFilePath}`);
   console.error(err instanceof Error ? err.message : err);
@@ -81,7 +86,7 @@ const angularPkgDir = path.dirname(angularPkgEntry);
 
 // Function that transforms the selector/tag
 function transformTag(str) {
-    return suffix ? `${str}${suffix}` : str;
+  return suffix ? `${str}${suffix}` : str;
 }
 
 // Used to store the original selector in a comment after a transform.
@@ -93,39 +98,37 @@ const originalSelectorComment = 'original-tag: ';
 const tagRegex = `["']([^"'\\[]+)["']`; // ignores directives, i.e. selectors with brackets ('[tag]')
 const componentRegex = `${tagRegex}(\\/\\*${originalSelectorComment}${tagRegex}\\*\\/)?`;
 
-
 // Lookaheads to find location of component tags. Is combined with componentRegex.
 const lookaheadRegexList = [
-    `(?<=selector:\\s)`, // used in i0.ɵsetClassMetadata: <selector: 'my-button',>
-    `(?<=selectors:\\s\\[\\[)`, // used in i0.ɵɵdefineComponent: <selectors: [['my-button']],>
-    `(?<=ɵɵComponentDeclaration<[^,]+,\\s*)`, // used in i0.ɵɵComponentDeclaration<MyButton, "my-button",>
-]
+  `(?<=selector:\\s)`, // used in i0.ɵsetClassMetadata: <selector: 'my-button',>
+  `(?<=selectors:\\s\\[\\[)`, // used in i0.ɵɵdefineComponent: <selectors: [['my-button']],>
+  `(?<=ɵɵComponentDeclaration<[^,]+,\\s*)`, // used in i0.ɵɵComponentDeclaration<MyButton, "my-button",>
+];
 
 // Using a lookahead for the tag name, finds all matches and replaces with transformed selector.
 function transformTagByLookahead(content, lookahead) {
-    const fullRegex = new RegExp(lookahead + componentRegex, 'g');
-    return content.replace(fullRegex, (_, tag, __, commentTag) => {
-        const originalSelector = commentTag ?? tag;
-        return `'${transformTag(originalSelector)}'/*${originalSelectorComment}'${originalSelector}'*/`
-    });
+  const fullRegex = new RegExp(lookahead + componentRegex, 'g');
+  return content.replace(fullRegex, (_, tag, __, commentTag) => {
+    const originalSelector = commentTag ?? tag;
+    return `'${transformTag(originalSelector)}'/*${originalSelectorComment}'${originalSelector}'*/`;
+  });
 }
 
 function transformTagInFile(filePath) {
-    let content = fs.readFileSync(filePath, 'utf8');
+  let content = fs.readFileSync(filePath, 'utf8');
 
-    content = lookaheadRegexList.reduce((c, l) => transformTagByLookahead(c, l), content);
+  content = lookaheadRegexList.reduce(
+    (c, l) => transformTagByLookahead(c, l),
+    content,
+  );
 
-    fs.writeFileSync(filePath, content, 'utf8');
+  fs.writeFileSync(filePath, content, 'utf8');
 }
 
-const filesToPatch = [
-    'fesm5.js',
-    'fesm2015.js',
-    'directives/proxies.d.ts'
-];
+const filesToPatch = ['fesm5.js', 'fesm2015.js', 'directives/proxies.d.ts'];
 
-filesToPatch.forEach(f => {
-  transformTagInFile(path.join(angularPkgDir, './' + f));
+filesToPatch.forEach((f) => {
+  transformTagInFile(path.join(angularPkgDir, `./${f}`));
 });
 
 console.log(`\nAngular wrapper patched successfully for "${angular}"`);
