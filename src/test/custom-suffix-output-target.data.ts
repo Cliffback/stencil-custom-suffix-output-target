@@ -1,11 +1,11 @@
 export const testData = {
   input: `import { proxyCustomElement, HTMLElement, h, Host } from '@stencil/core/internal/client';
-import { d as defineCustomElement$5 } from './stn-button2.js';
-import { d as defineCustomElement$4 } from './stn-checkbox2.js';
-import { d as defineCustomElement$3 } from './stn-icon2.js';
-import { d as defineCustomElement$2 } from './stn-spinner2.js';
+import { d as defineCustomElement$5 } from './my-button2.js';
+import { d as defineCustomElement$4 } from './my-checkbox2.js';
+import { d as defineCustomElement$3 } from './my-icon2.js';
+import { d as defineCustomElement$2 } from './my-spinner2.js';
 
-const myComponentCss = "stn-button{background-color:#007bff}stn-checkbox{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}";
+const myComponentCss = "my-button{background-color:#007bff}my-checkbox{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}";
 
 const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends HTMLElement {
     constructor() {
@@ -21,9 +21,9 @@ const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends
         this.el.querySelector('previous + my-component');
         this.el.querySelector('my-component[attribute="value"]');
         this.el.querySelector('my-component:pseudo-class');
-        this.el.querySelector('stn-checkbox');
-        this.el.querySelector('stn-button');
-        return (h(Host, { key: '5ef84b3e706ca72cc500a1b61e141eced318a02b' }, h("div", { key: '8f31ecdb2d02770ec98aedb3fb2ecd356cafe70f' }, h("span", { key: '5872f0b4844490cbb16388065d5c1215603fb626' }, "Hello, World!"), h("stn-button", { key: '3db7e9a0b09b9a298e47211007819383ef683749' }, "Click me!"), h("stn-checkbox", { key: '085ed1f662211ea5ec5f377309cfeb26a8cafcd0' }, "Check me!"))));
+        this.el.querySelector('my-checkbox');
+        this.el.querySelector('my-button');
+        return (h(Host, { key: '5ef84b3e706ca72cc500a1b61e141eced318a02b' }, h("div", { key: '8f31ecdb2d02770ec98aedb3fb2ecd356cafe70f' }, h("span", { key: '5872f0b4844490cbb16388065d5c1215603fb626' }, "Hello, World!"), h("my-button", { key: '3db7e9a0b09b9a298e47211007819383ef683749' }, "Click me!"), h("my-checkbox", { key: '085ed1f662211ea5ec5f377309cfeb26a8cafcd0' }, "Check me!"))));
     }
     get el() { return this; }
     static get style() { return myComponentCss; }
@@ -32,29 +32,29 @@ function defineCustomElement$1() {
     if (typeof customElements === "undefined") {
         return;
     }
-    const components = ["my-component", "stn-button", "stn-checkbox", "stn-icon", "stn-spinner"];
+    const components = ["my-component", "my-button", "my-checkbox", "my-icon", "my-spinner"];
     components.forEach(tagName => { switch (tagName) {
         case "my-component":
             if (!customElements.get(tagName)) {
                 customElements.define(tagName, MyComponent$1);
             }
             break;
-        case "stn-button":
+        case "my-button":
             if (!customElements.get(tagName)) {
                 defineCustomElement$5();
             }
             break;
-        case "stn-checkbox":
+        case "my-checkbox":
             if (!customElements.get(tagName)) {
                 defineCustomElement$4();
             }
             break;
-        case "stn-icon":
+        case "my-icon":
             if (!customElements.get(tagName)) {
                 defineCustomElement$3();
             }
             break;
-        case "stn-spinner":
+        case "my-spinner":
             if (!customElements.get(tagName)) {
                 defineCustomElement$2();
             }
@@ -72,11 +72,11 @@ export { MyComponent, defineCustomElement };
 `,
   expectedOutput: `import suffix from "../custom-suffix.json";
 import { proxyCustomElement, HTMLElement, h, Host } from "@stencil/core/internal/client";
-import { d as defineCustomElement$5 } from "./stn-button2.js";
-import { d as defineCustomElement$4 } from "./stn-checkbox2.js";
-import { d as defineCustomElement$3 } from "./stn-icon2.js";
-import { d as defineCustomElement$2 } from "./stn-spinner2.js";
-const myComponentCss = \`stn-button\${suffix}{background-color:#007bff}stn-checkbox\${suffix}{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}\`;
+import { d as defineCustomElement$5 } from "./my-button2.js";
+import { d as defineCustomElement$4 } from "./my-checkbox2.js";
+import { d as defineCustomElement$3 } from "./my-icon2.js";
+import { d as defineCustomElement$2 } from "./my-spinner2.js";
+const myComponentCss = \`my-button\${suffix}{background-color:#007bff}my-checkbox\${suffix}{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}\`;
 const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends HTMLElement {
     constructor() {
         super();
@@ -91,9 +91,9 @@ const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends
         this.el.querySelector(\`previous + my-component\${suffix}\`);
         this.el.querySelector(\`my-component\${suffix}[attribute="value"]\`);
         this.el.querySelector(\`my-component\${suffix}:pseudo-class\`);
-        this.el.querySelector(\`stn-checkbox\${suffix}\`);
-        this.el.querySelector(\`stn-button\${suffix}\`);
-        return (h(Host, { key: "5ef84b3e706ca72cc500a1b61e141eced318a02b" }, h("div", { key: "8f31ecdb2d02770ec98aedb3fb2ecd356cafe70f" }, h("span", { key: "5872f0b4844490cbb16388065d5c1215603fb626" }, "Hello, World!"), h("stn-button" + suffix, { key: "3db7e9a0b09b9a298e47211007819383ef683749" }, "Click me!"), h("stn-checkbox" + suffix, { key: "085ed1f662211ea5ec5f377309cfeb26a8cafcd0" }, "Check me!"))));
+        this.el.querySelector(\`my-checkbox\${suffix}\`);
+        this.el.querySelector(\`my-button\${suffix}\`);
+        return (h(Host, { key: "5ef84b3e706ca72cc500a1b61e141eced318a02b" }, h("div", { key: "8f31ecdb2d02770ec98aedb3fb2ecd356cafe70f" }, h("span", { key: "5872f0b4844490cbb16388065d5c1215603fb626" }, "Hello, World!"), h("my-button" + suffix, { key: "3db7e9a0b09b9a298e47211007819383ef683749" }, "Click me!"), h("my-checkbox" + suffix, { key: "085ed1f662211ea5ec5f377309cfeb26a8cafcd0" }, "Check me!"))));
     }
     get el() { return this; }
     static get style() { return myComponentCss; }
@@ -102,7 +102,7 @@ function defineCustomElement$1() {
     if (typeof customElements === "undefined") {
         return;
     }
-    const components = ["my-component", "stn-button", "stn-checkbox", "stn-icon", "stn-spinner"];
+    const components = ["my-component", "my-button", "my-checkbox", "my-icon", "my-spinner"];
     components.forEach(tagName => {
         switch (tagName) {
             case "my-component":
@@ -110,22 +110,22 @@ function defineCustomElement$1() {
                     customElements.define(tagName + suffix, MyComponent$1);
                 }
                 break;
-            case "stn-button":
+            case "my-button":
                 if (!customElements.get(tagName + suffix)) {
                     defineCustomElement$5();
                 }
                 break;
-            case "stn-checkbox":
+            case "my-checkbox":
                 if (!customElements.get(tagName + suffix)) {
                     defineCustomElement$4();
                 }
                 break;
-            case "stn-icon":
+            case "my-icon":
                 if (!customElements.get(tagName + suffix)) {
                     defineCustomElement$3();
                 }
                 break;
-            case "stn-spinner":
+            case "my-spinner":
                 if (!customElements.get(tagName + suffix)) {
                     defineCustomElement$2();
                 }

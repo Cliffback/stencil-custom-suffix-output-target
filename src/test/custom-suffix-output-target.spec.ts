@@ -8,7 +8,7 @@ import {
 describe('customSuffixOutputTarget', () => {
   const setup = new TestComponentSetup({
     tagName: 'my-component',
-    dependencies: ['stn-button', 'stn-checkbox'],
+    dependencies: ['my-button', 'my-checkbox', 'my-icon', 'my-spinner'],
     outputPath: '/mock-output-dir',
   });
 
