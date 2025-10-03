@@ -71,14 +71,14 @@ describe('customSuffixOutputTarget - components.d.ts transformation', () => {
   });
 
   it('should not write components.d.ts if file does not exist', async () => {
-    // Mock the readFile to reject for types file (simulating file not found)
+    // Mock the readFile to return undefined for types file
     setup.compiler.fs.readFile = jest.fn(
       (filePath: string): Promise<string> => {
         if (filePath === setup.typesPath) {
-          return Promise.reject(new Error('File not found'));
+          return Promise.resolve(undefined as any);
         }
         if (filePath.endsWith('2.js')) {
-          return Promise.reject(new Error('File not found'));
+          return Promise.resolve(undefined as any);
         }
         return Promise.resolve(testData.input);
       },
