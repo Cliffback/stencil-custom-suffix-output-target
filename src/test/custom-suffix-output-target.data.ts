@@ -14,6 +14,7 @@ const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends
         this.__attachShadow();
     }
     render() {
+        this.el.createElement('my-checkbox');
         this.el.querySelector('my-component');
         this.el.querySelector('#my-component');
         this.el.querySelector('.my-component');
@@ -84,6 +85,7 @@ const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends
         this.__attachShadow();
     }
     render() {
+        this.el.createElement(\`my-checkbox\${suffix}\`);
         this.el.querySelector(\`my-component\${suffix}\`);
         this.el.querySelector("#my-component");
         this.el.querySelector(".my-component");
