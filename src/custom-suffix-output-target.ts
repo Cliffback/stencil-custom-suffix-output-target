@@ -1,3 +1,4 @@
+import { argv0 } from 'node:process';
 import type { Config } from '@stencil/core';
 import type {
   BuildCtx,
@@ -135,7 +136,8 @@ async function applyTransformers(
 
           if (
             (methodName === 'querySelector' ||
-              methodName === 'querySelectorAll') &&
+              methodName === 'querySelectorAll' ||
+              methodName === 'createElement') &&
             node.arguments.length > 0
           ) {
             const selectorArgument = node.arguments[0];
