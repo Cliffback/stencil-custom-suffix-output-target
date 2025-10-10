@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/Cliffback/stencil-custom-suffix-output-target#readme",
   "dependencies": {
-    "@stencil/core": "^4.30.0",
+    "@stencil/core": "^4.38.1",
     "css-what": "^6.1.0",
     "postcss": "^8.5.6",
     "postcss-safe-parser": "^7.0.1",
