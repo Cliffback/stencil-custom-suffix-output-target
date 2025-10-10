@@ -19,10 +19,8 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           release-type: node
-          package-name: stencil-custom-suffix-output-target
-          # Ensures release-please generates CHANGELOG.md
-          changelog-path: CHANGELOG.md
 
   publish:
     needs: release-please
