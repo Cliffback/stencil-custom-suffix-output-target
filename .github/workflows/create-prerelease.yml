@@ -9,7 +9,7 @@ on:
         default: "experimental"
 
 jobs:
-  publish-experimental:
+  publish-prerelease:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (same ref as UI selector)
