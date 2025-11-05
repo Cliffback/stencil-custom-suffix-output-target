@@ -1,4 +1,3 @@
-import { argv0 } from 'node:process';
 import type { Config } from '@stencil/core';
 import type {
   BuildCtx,
