@@ -1,3 +1,5 @@
+name: Create Prerelease
+
 on:
   workflow_dispatch:
     inputs:
