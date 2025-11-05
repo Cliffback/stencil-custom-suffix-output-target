@@ -1,50 +1,17 @@
-name: Create Prerelease
-
 on:
   workflow_dispatch:
     inputs:
-      target:
-        description: "PR number or branch name to publish from"
-        required: true
       dist_tag:
         description: "npm dist-tag (e.g., experimental, next, canary)"
         required: true
         default: "experimental"
-      preid:
-        description: "pre-release id (e.g., exp, next, canary)"
-        required: true
-        default: "exp"
-
-permissions:
-  contents: read
-  pull-requests: read
-
-env:
-  NODE_VERSION: 24
 
 jobs:
   publish-experimental:
-    name: Publish prerelease to npm
     runs-on: ubuntu-latest
-    environment: create-prerelease
     steps:
-      - name: Resolve ref (PR or branch)
-        id: resolve
-        shell: bash
-        run: |
-          INPUT="${{ github.event.inputs.target }}"
-          if [[ "$INPUT" =~ ^[0-9]+$ ]]; then
-            echo "Detected PR number: #$INPUT"
-            echo "ref=refs/pull/$INPUT/merge" >> "$GITHUB_OUTPUT"
-          else
-            echo "Detected branch: $INPUT"
-            echo "ref=refs/heads/$INPUT" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Checkout target ref
+      - name: Checkout (same ref as UI selector)
         uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.resolve.outputs.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -63,10 +30,17 @@ jobs:
         id: sha
         run: echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Compute preid (default = dist_tag)
+        id: preid
+        shell: bash
+        run: |
+          RAW="${{ github.event.inputs.dist_tag }}"
+          echo "value=$RAW" >> "$GITHUB_OUTPUT"
+
       - name: Bump prerelease version (no git tag)
         run: |
-          PREID="${{ github.event.inputs.preid }}.${{ steps.sha.outputs.short }}"
-          npm version prerelease --preid "${PREID}" --no-git-tag-version
+          PREID="${{ steps.preid.outputs.value }}.${{ steps.sha.outputs.short }}"
+          npm version prerelease --preid "$PREID" --no-git-tag-version
           echo "Version set to: $(node -p "require('./package.json').version")"
 
       - name: Publish to npm (dist-tag)
@@ -74,7 +48,6 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           TAG="${{ github.event.inputs.dist_tag }}"
-          # If your package is scoped and public, ensure --access public
           npm publish --tag "$TAG" --access public
 
       - name: Output published version and tag
