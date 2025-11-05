@@ -75,10 +75,10 @@ describe('customSuffixOutputTarget - components.d.ts transformation', () => {
     setup.compiler.fs.readFile = jest.fn(
       (filePath: string): Promise<string> => {
         if (filePath === setup.typesPath) {
-          return Promise.resolve(undefined as any);
+          return Promise.resolve('');
         }
         if (filePath.endsWith('2.js')) {
-          return Promise.resolve(undefined as any);
+          return Promise.resolve('');
         }
         return Promise.resolve(testData.input);
       },
