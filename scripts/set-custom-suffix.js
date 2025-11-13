@@ -124,11 +124,31 @@ function transformTagInFile(filePath) {
   fs.writeFileSync(filePath, content, 'utf8');
 }
 
-const filesToPatch = ['fesm5.js', 'fesm2015.js', 'directives/proxies.d.ts'];
+const dirEntries = fs.readdirSync(angularPkgDir, { withFileTypes: true });
+const fesmFiles = dirEntries
+  .filter((d) => d.isFile() && /^fesm.*\.js$/i.test(d.name))
+  .map((d) => d.name);
 
-filesToPatch.forEach((f) => {
-  transformTagInFile(path.join(angularPkgDir, `./${f}`));
-});
+const proxiesPath = path.join(angularPkgDir, 'directives', 'proxies.d.ts');
+const extraFiles = fs.existsSync(proxiesPath)
+  ? ['directives/proxies.d.ts']
+  : [];
 
-console.log(`\nAngular wrapper patched successfully for "${angular}"`);
-console.log(`Files patched: ${filesToPatch.join(', ')}\n`);
+const filesToPatch = [...fesmFiles, ...extraFiles];
+
+if (filesToPatch.length === 0) {
+  console.warn(`No files matched in ${angularPkgDir}.`);
+} else {
+  filesToPatch.forEach((f) => {
+    const filePath = path.join(angularPkgDir, f);
+    try {
+      transformTagInFile(filePath);
+    } catch (err) {
+      console.error(`Failed to patch: ${f}`);
+      console.error(err instanceof Error ? err.message : err);
+    }
+  });
+
+  console.log(`\nAngular wrapper patched successfully for "${angular}"`);
+  console.log(`Files patched: ${filesToPatch.join(', ')}\n`);
+}
