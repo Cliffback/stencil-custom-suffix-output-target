@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v1.4.0...v1.5.0) (2025-11-13)
+
+
+### Features
+
+* add wildcard support for fesm*.js files in patching script ([#24](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/24)) ([939c72f](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/939c72f139d668d5f702f446f393275f34d5c574))
+
 ## [1.4.0](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v1.3.1...v1.4.0) (2025-10-10)
 
 
