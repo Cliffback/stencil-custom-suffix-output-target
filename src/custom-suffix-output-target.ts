@@ -16,7 +16,8 @@ import {
   relativePath,
 } from './custom-suffix-utils.ts';
 
-const customSuffixOutputTarget = (): OutputTargetCustom => ({
+export function customSuffixOutputTarget(): OutputTarget {
+  const target = {
   type: 'custom',
   name: 'custom-suffix-output-target',
   generator: async (
@@ -82,7 +83,9 @@ const customSuffixOutputTarget = (): OutputTargetCustom => ({
     await compilerCtx.fs.writeFile(configPath, configContent);
     buildCtx.debug('Generated custom suffix config file');
   },
-});
+  } satisfies OutputTargetCustom;
+  return target;
+};
 
 async function applyTransformers(
   fileName: string,
@@ -436,4 +439,4 @@ const configImport = ts.factory.createImportDeclaration(
   ts.factory.createStringLiteral(relativePath + fileName),
 );
 
-export default customSuffixOutputTarget as () => OutputTarget;
+export default customSuffixOutputTarget;
