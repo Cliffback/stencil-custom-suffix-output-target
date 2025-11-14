@@ -1,4 +1,4 @@
-import { customSuffixOutputTarget } from '../custom-suffix-output-target';
+import { target } from '../custom-suffix-output-target';
 import { testData, typesTestData } from './custom-suffix-output-target.data';
 import {
   mockSetup,
@@ -17,7 +17,7 @@ describe('customSuffixOutputTarget', () => {
   });
 
   it('should process files in the output directory', async () => {
-    const outputTarget = customSuffixOutputTarget();
+    const outputTarget = target();
 
     await outputTarget.generator(...setup.generatorParams);
 
@@ -34,7 +34,7 @@ describe('customSuffixOutputTarget', () => {
   it('should skip processing if tagNameTransform is not enabled', async () => {
     if (setup.config.extras) {
       setup.config.extras.tagNameTransform = false;
-      const outputTarget = customSuffixOutputTarget();
+      const outputTarget = target();
       await outputTarget.generator(...setup.generatorParams);
 
       expect(setup.compiler.fs.readFile).not.toHaveBeenCalled();
@@ -54,7 +54,7 @@ describe('customSuffixOutputTarget - components.d.ts transformation', () => {
   });
 
   it('should transform components.d.ts with suffixed interface entries', async () => {
-    const outputTarget = customSuffixOutputTarget();
+    const outputTarget = target();
 
     await outputTarget.generator(...setup.generatorParams);
 
@@ -84,7 +84,7 @@ describe('customSuffixOutputTarget - components.d.ts transformation', () => {
       },
     );
 
-    const outputTarget = customSuffixOutputTarget();
+    const outputTarget = target();
     await outputTarget.generator(...setup.generatorParams);
 
     // Check that we tried to read the types file
