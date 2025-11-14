@@ -16,76 +16,73 @@ import {
   relativePath,
 } from './custom-suffix-utils.ts';
 
-export function customSuffixOutputTarget(): OutputTarget {
-  const target = {
-    type: 'custom',
-    name: 'custom-suffix-output-target',
-    generator: async (
-      _config: Config,
-      compilerCtx: CompilerCtx,
-      buildCtx: BuildCtx,
-    ) => {
-      if (!_config.extras?.tagNameTransform) return;
+const targetObject = {
+  type: 'custom',
+  name: 'custom-suffix-output-target',
+  generator: async (
+    _config: Config,
+    compilerCtx: CompilerCtx,
+    buildCtx: BuildCtx,
+  ) => {
+    if (!_config.extras?.tagNameTransform) return;
 
-      const { outputDir, configPath, typesPath } = new CustomSuffixHelper(
-        _config,
-      );
+    const { outputDir, configPath, typesPath } = new CustomSuffixHelper(
+      _config,
+    );
 
-      if (outputDir === undefined) return;
+    if (outputDir === undefined) return;
 
-      const tagNames = buildCtx.components.map((cmp) => cmp.tagName);
+    const tagNames = buildCtx.components.map((cmp) => cmp.tagName);
 
-      for (const cmp of buildCtx.components) {
-        let filePath = `${outputDir}/${cmp.tagName}2.js`;
-        let originalContent = await compilerCtx.fs
+    for (const cmp of buildCtx.components) {
+      let filePath = `${outputDir}/${cmp.tagName}2.js`;
+      let originalContent = await compilerCtx.fs
+        .readFile(filePath)
+        .catch(() => '');
+
+      if (originalContent === undefined) {
+        filePath = `${outputDir}/${cmp.tagName}.js`;
+        originalContent = await compilerCtx.fs
           .readFile(filePath)
           .catch(() => '');
-
-        if (originalContent === undefined) {
-          filePath = `${outputDir}/${cmp.tagName}.js`;
-          originalContent = await compilerCtx.fs
-            .readFile(filePath)
-            .catch(() => '');
-        }
-        const transformedContent = await applyTransformers(
-          filePath,
-          originalContent,
-          tagNames,
-        );
-
-        await compilerCtx.fs.writeFile(filePath, transformedContent);
       }
+      const transformedContent = await applyTransformers(
+        filePath,
+        originalContent,
+        tagNames,
+      );
 
-      // Transform components.d.ts
-      const componentTypes = await compilerCtx.fs
-        .readFile(typesPath)
-        .catch(() => undefined);
+      await compilerCtx.fs.writeFile(filePath, transformedContent);
+    }
 
-      if (componentTypes !== undefined) {
-        const transformed = transformDtsInterfaces(
-          typesPath,
-          componentTypes,
-          tagNames,
-        );
-        if (transformed !== componentTypes) {
-          await compilerCtx.fs.writeFile(typesPath, transformed);
-          buildCtx.debug?.(`Transformed declaration file: ${typesPath}`);
-        }
+    // Transform components.d.ts
+    const componentTypes = await compilerCtx.fs
+      .readFile(typesPath)
+      .catch(() => undefined);
+
+    if (componentTypes !== undefined) {
+      const transformed = transformDtsInterfaces(
+        typesPath,
+        componentTypes,
+        tagNames,
+      );
+      if (transformed !== componentTypes) {
+        await compilerCtx.fs.writeFile(typesPath, transformed);
+        buildCtx.debug?.(`Transformed declaration file: ${typesPath}`);
       }
+    }
 
-      // Generate the custom suffix config file
-      if (fileName === undefined || typeof fileName !== 'string') {
-        buildCtx.debug('Custom suffix config file name is undefined');
-        return;
-      }
-      const configContent = JSON.stringify('');
+    // Generate the custom suffix config file
+    if (fileName === undefined || typeof fileName !== 'string') {
+      buildCtx.debug('Custom suffix config file name is undefined');
+      return;
+    }
+    const configContent = JSON.stringify('');
 
-      await compilerCtx.fs.writeFile(configPath, configContent);
-      buildCtx.debug('Generated custom suffix config file');
-    },
-  } satisfies OutputTargetCustom;
-  return target;
-}
+    await compilerCtx.fs.writeFile(configPath, configContent);
+    buildCtx.debug('Generated custom suffix config file');
+  },
+} satisfies OutputTargetCustom;
 
 async function applyTransformers(
   fileName: string,
@@ -439,4 +436,8 @@ const configImport = ts.factory.createImportDeclaration(
   ts.factory.createStringLiteral(relativePath + fileName),
 );
 
-export default customSuffixOutputTarget;
+export const target = (): OutputTargetCustom => targetObject;
+
+export function customSuffixOutputTarget(): OutputTarget {
+  return target();
+}
