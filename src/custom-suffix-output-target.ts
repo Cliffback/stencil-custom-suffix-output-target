@@ -2,6 +2,7 @@ import type { Config } from '@stencil/core';
 import type {
   BuildCtx,
   CompilerCtx,
+  OutputTarget,
   OutputTargetCustom,
 } from '@stencil/core/internal';
 import { parse, SelectorType, stringify } from 'css-what';
@@ -15,7 +16,7 @@ import {
   relativePath,
 } from './custom-suffix-utils.ts';
 
-export const customSuffixOutputTarget = (): OutputTargetCustom => ({
+const customSuffixOutputTarget = (): OutputTargetCustom => ({
   type: 'custom',
   name: 'custom-suffix-output-target',
   generator: async (
@@ -434,3 +435,5 @@ const configImport = ts.factory.createImportDeclaration(
   ),
   ts.factory.createStringLiteral(relativePath + fileName),
 );
+
+export default customSuffixOutputTarget as () => OutputTarget;
