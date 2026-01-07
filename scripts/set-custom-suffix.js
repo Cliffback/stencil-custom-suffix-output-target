@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { fileURLToPath } from 'node:url';
 
 const argv = yargs(hideBin(process.argv))
   .usage('Usage: $0 --set <value> --target <package> --angular <package>')
