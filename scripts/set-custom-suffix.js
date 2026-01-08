@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
@@ -33,20 +33,21 @@ const set = String(argv.set);
 const target = String(argv.target);
 const angular = String(argv.angular);
 const suffix = `--${set}`;
-const require = createRequire(import.meta.url);
 
-// Set the suffix in the target package
-let targetPkgEntry;
-try {
-  targetPkgEntry = require.resolve(target);
-} catch (err) {
-  console.error(`Could not resolve target package "${target}".`);
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
+function getDistDir(pathStr) {
+  try {
+    const pkgJsonUrl = import.meta.resolve(`${pathStr}/package.json`);
+    const pkgDir = path.dirname(fileURLToPath(new URL(pkgJsonUrl)));
+    return path.join(pkgDir, 'dist');
+  } catch (err) {
+    console.error(`Could not resolve package "${pathStr}".`);
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  }
 }
 
-const pkgDir = path.dirname(targetPkgEntry);
-const configFilePath = path.resolve(pkgDir, 'custom-suffix.json');
+const targetDistDir = getDistDir(target);
+const configFilePath = path.resolve(targetDistDir, 'custom-suffix.json');
 
 try {
   const distDir = path.dirname(configFilePath);
@@ -71,17 +72,7 @@ if (!angular) {
   process.exit(0);
 }
 
-// Patch the angular wrapper package
-let angularPkgEntry;
-try {
-  angularPkgEntry = require.resolve(angular);
-} catch (err) {
-  console.error(`Could not resolve angular wrapper package "${angular}".`);
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
-}
-
-const angularPkgDir = path.dirname(angularPkgEntry);
+const angularDistDir = getDistDir(angular);
 
 // Function that transforms the selector/tag
 function transformTag(str) {
@@ -124,12 +115,12 @@ function transformTagInFile(filePath) {
   fs.writeFileSync(filePath, content, 'utf8');
 }
 
-const dirEntries = fs.readdirSync(angularPkgDir, { withFileTypes: true });
+const dirEntries = fs.readdirSync(angularDistDir, { withFileTypes: true });
 const fesmFiles = dirEntries
   .filter((d) => d.isFile() && /^fesm.*\.js$/i.test(d.name))
   .map((d) => d.name);
 
-const proxiesPath = path.join(angularPkgDir, 'directives', 'proxies.d.ts');
+const proxiesPath = path.join(angularDistDir, 'directives', 'proxies.d.ts');
 const extraFiles = fs.existsSync(proxiesPath)
   ? ['directives/proxies.d.ts']
   : [];
@@ -137,10 +128,10 @@ const extraFiles = fs.existsSync(proxiesPath)
 const filesToPatch = [...fesmFiles, ...extraFiles];
 
 if (filesToPatch.length === 0) {
-  console.warn(`No files matched in ${angularPkgDir}.`);
+  console.warn(`No files matched in ${angularDistDir}.`);
 } else {
   filesToPatch.forEach((f) => {
-    const filePath = path.join(angularPkgDir, f);
+    const filePath = path.join(angularDistDir, f);
     try {
       transformTagInFile(filePath);
     } catch (err) {
