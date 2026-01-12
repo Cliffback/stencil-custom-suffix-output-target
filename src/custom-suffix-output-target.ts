@@ -2,6 +2,7 @@ import type { Config } from '@stencil/core';
 import type {
   BuildCtx,
   CompilerCtx,
+  OutputTarget,
   OutputTargetCustom,
 } from '@stencil/core/internal';
 import { parse, SelectorType, stringify } from 'css-what';
@@ -15,7 +16,7 @@ import {
   relativePath,
 } from './custom-suffix-utils.ts';
 
-export const customSuffixOutputTarget = (): OutputTargetCustom => ({
+const targetObject = {
   type: 'custom',
   name: 'custom-suffix-output-target',
   generator: async (
@@ -81,7 +82,7 @@ export const customSuffixOutputTarget = (): OutputTargetCustom => ({
     await compilerCtx.fs.writeFile(configPath, configContent);
     buildCtx.debug('Generated custom suffix config file');
   },
-});
+} satisfies OutputTargetCustom;
 
 async function applyTransformers(
   fileName: string,
@@ -434,3 +435,9 @@ const configImport = ts.factory.createImportDeclaration(
   ),
   ts.factory.createStringLiteral(relativePath + fileName),
 );
+
+export const target = (): OutputTargetCustom => targetObject;
+
+export function customSuffixOutputTarget(): OutputTarget {
+  return target();
+}
