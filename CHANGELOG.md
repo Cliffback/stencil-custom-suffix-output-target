@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v1.6.0...v1.6.1) (2026-01-12)
+
+
+### Bug Fixes
+
+* **script:** better error handling ([#35](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/35)) ([049f17e](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/049f17e1d6c3290cf42b3312ff9f78f1a52d2020))
+
 ## [1.6.0](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v1.5.0...v1.6.0) (2026-01-08)
 
 
