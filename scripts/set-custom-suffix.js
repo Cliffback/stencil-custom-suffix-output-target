@@ -35,38 +35,25 @@ const angular = String(argv.angular);
 const suffix = `--${set}`;
 
 function getDistDir(pathStr) {
-  try {
-    const pkgJsonUrl = import.meta.resolve(`${pathStr}/package.json`);
-    const pkgDir = path.dirname(fileURLToPath(new URL(pkgJsonUrl)));
-    return path.join(pkgDir, 'dist');
-  } catch (err) {
-    console.error(`Could not resolve package "${pathStr}".`);
-    console.error(err instanceof Error ? err.message : err);
-    process.exit(1);
-  }
+  const pkgJsonUrl = import.meta.resolve(`${pathStr}/package.json`);
+  const pkgDir = path.dirname(fileURLToPath(new URL(pkgJsonUrl)));
+  return path.join(pkgDir, 'dist');
 }
 
 const targetDistDir = getDistDir(target);
 const configFilePath = path.resolve(targetDistDir, 'custom-suffix.json');
 
-try {
-  const distDir = path.dirname(configFilePath);
-  if (!fs.existsSync(distDir)) {
-    console.error(`Dist folder not found: ${distDir}`);
-    process.exit(1);
-  }
-
-  fs.writeFileSync(configFilePath, JSON.stringify(suffix, null, 2));
-  console.log(
-    `custom-suffix config updated successfully for "${target}"\n` +
-      `new suffix set: "${suffix}"\n` +
-      `file written to: ${configFilePath}`,
-  );
-} catch (err) {
-  console.error(`Failed to write config file at ${configFilePath}`);
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
+const distDir = path.dirname(configFilePath);
+if (!fs.existsSync(distDir)) {
+  throw new Error(`Dist folder not found: ${distDir}`);
 }
+
+fs.writeFileSync(configFilePath, JSON.stringify(suffix, null, 2));
+console.log(
+  `custom-suffix config updated successfully for "${target}"\n` +
+    `new suffix set: "${suffix}"\n` +
+    `file written to: ${configFilePath}`,
+);
 
 if (!angular) {
   process.exit(0);
@@ -128,18 +115,13 @@ const extraFiles = fs.existsSync(proxiesPath)
 const filesToPatch = [...fesmFiles, ...extraFiles];
 
 if (filesToPatch.length === 0) {
-  console.warn(`No files matched in ${angularDistDir}.`);
-} else {
-  filesToPatch.forEach((f) => {
-    const filePath = path.join(angularDistDir, f);
-    try {
-      transformTagInFile(filePath);
-    } catch (err) {
-      console.error(`Failed to patch: ${f}`);
-      console.error(err instanceof Error ? err.message : err);
-    }
-  });
-
-  console.log(`\nAngular wrapper patched successfully for "${angular}"`);
-  console.log(`Files patched: ${filesToPatch.join(', ')}\n`);
+  throw new Error(`No files matched in ${angularDistDir}.`);
 }
+
+filesToPatch.forEach((f) => {
+  const filePath = path.join(angularDistDir, f);
+  transformTagInFile(filePath);
+});
+
+console.log(`\nAngular wrapper patched successfully for "${angular}"`);
+console.log(`Files patched: ${filesToPatch.join(', ')}\n`);
