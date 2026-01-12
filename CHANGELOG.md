@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v1.5.0...v1.6.0) (2026-01-08)
+
+
+### Features
+
+* **script:** more robust target package import handling ([#33](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/33)) ([2258a1e](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/2258a1eff517cc4e309aa7c25d9d2e85b7fcd91b))
+
 ## [1.5.0](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v1.4.0...v1.5.0) (2025-11-13)
 
 
