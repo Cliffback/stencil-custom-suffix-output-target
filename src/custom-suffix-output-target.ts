@@ -140,8 +140,6 @@ async function applyTransformers(
               firstArg.text === 'slot' &&
               ts.isObjectLiteralExpression(secondArg)
             ) {
-
-
               let changed = false;
               const newProps = secondArg.properties.map((props) => {
                 if (!ts.isPropertyAssignment(props)) return props;
@@ -159,17 +157,17 @@ async function applyTransformers(
 
                 // name: "stn-card-header" -> "stn-card-header" + suffix
                 if (ts.isStringLiteral(init)) {
-                    changed = true;
-                    const newInit = ts.factory.createBinaryExpression(
-                      init,
-                      ts.SyntaxKind.PlusToken,
-                      ts.factory.createIdentifier('suffix'),
-                    );
-                    return ts.factory.updatePropertyAssignment(
-                      props,
-                      props.name,
-                      newInit,
-                    );
+                  changed = true;
+                  const newInit = ts.factory.createBinaryExpression(
+                    init,
+                    ts.SyntaxKind.PlusToken,
+                    ts.factory.createIdentifier('suffix'),
+                  );
+                  return ts.factory.updatePropertyAssignment(
+                    props,
+                    props.name,
+                    newInit,
+                  );
                 }
 
                 return props;
