@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v1.6.1...v2.0.0) (2026-01-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* support stencil v4.39.0+ ([#37](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/37))
+
+### Features
+
+* patch slotted css ([#41](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/41)) ([66500b4](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/66500b42cb0cee9dab57cc30bc379a7b6c5466c8))
+* support onSlotchange ([#40](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/40)) ([f393fb0](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/f393fb03fede21af74add1ac862e240dbc05ed9b))
+
+
+### Bug Fixes
+
+* satisfy OutputTarget type ([#32](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/32)) ([a1c7928](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/a1c79282bcc63fa44e0bf68dcc3bbc4989c81bfd))
+* support stencil v4.39.0+ ([#37](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/37)) ([505caa5](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/505caa552c80df11561752c0363ea06eb5dfd0ae))
+
 ## [1.6.1](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v1.6.0...v1.6.1) (2026-01-12)
 
 
