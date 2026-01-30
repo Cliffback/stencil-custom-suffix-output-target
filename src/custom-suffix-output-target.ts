@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noTemplateCurlyInString: This is intended to create a template literal in the final output */
 import type { Config } from '@stencil/core';
 import type {
   BuildCtx,
@@ -8,7 +9,12 @@ import type {
 import { parse, SelectorType, stringify } from 'css-what';
 import postcss from 'postcss';
 import postcssSafeParser from 'postcss-safe-parser';
-import postcssSelectorParser, { type Root } from 'postcss-selector-parser';
+import postcssSelectorParser, {
+  type Pseudo,
+  type Root,
+  type Selector,
+  type Tag,
+} from 'postcss-selector-parser';
 import ts from 'typescript';
 import {
   CustomSuffixHelper,
@@ -333,10 +339,21 @@ async function applyTransformers(
   return processedCode;
 }
 
-async function processCSS(code: string, tagNames: string[]): Promise<string> {
+export async function processCSS(
+  code: string,
+  tagNames: string[],
+): Promise<string> {
   const cssRegex = /const\s+(\w+Css)\s*=\s*"((?:\\.|[^"\\])*)"/g;
-  let match: RegExpExecArray | null;
-  match = cssRegex.exec(code);
+
+  let match: RegExpExecArray | null = cssRegex.exec(code);
+
+  // Helper to add ${suffix} to a tag node if it matches and is not already suffixed
+  const maybeSuffixTag = (tag: Tag) => {
+    if (tagNames.includes(tag.value) && !tag.value.endsWith('${suffix}')) {
+      tag.value += '${suffix}';
+    }
+  };
+
   while (match !== null) {
     const [fullMatch, varName, cssContent] = match as unknown as [
       string,
@@ -347,16 +364,30 @@ async function processCSS(code: string, tagNames: string[]): Promise<string> {
       (root: postcss.Root) => {
         root.walkRules((rule) => {
           rule.selectors = rule.selectors.map((sel) => {
-            const parsedSelector = postcssSelectorParser().astSync(
+            const parsed = postcssSelectorParser().astSync(
               sel,
             ) as unknown as Root;
-            parsedSelector.walkTags((tag) => {
-              if (tagNames.includes(tag.value)) {
-                // biome-ignore lint/suspicious/noTemplateCurlyInString: This is intended to create a template literal in the final output
-                tag.value += '${suffix}';
+
+            // Handle plain tag selectors (e.g., my-button, my-checkbox)
+            parsed.walkTags((tag) => {
+              maybeSuffixTag(tag);
+            });
+
+            // Handle tags inside :slotted(...) or ::slotted(...)
+            parsed.walkPseudos((pseudo: Pseudo) => {
+              if (pseudo.value === ':slotted' || pseudo.value === '::slotted') {
+                if (pseudo.nodes && pseudo.nodes.length > 0) {
+                  pseudo.nodes.forEach((n) => {
+                    const selNode = n as unknown as Selector;
+                    selNode.walkTags((tag) => {
+                      maybeSuffixTag(tag);
+                    });
+                  });
+                }
               }
             });
-            return parsedSelector.toString();
+
+            return parsed.toString();
           });
         });
       },
