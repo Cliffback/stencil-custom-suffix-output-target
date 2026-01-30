@@ -63,6 +63,11 @@ function defineCustomElement$1() {
     } });
 }
 
+// Stencil v4.39.0 introduces transformTag helper function for tag name transformations
+if (!customElements.get(transformTag(tagName))) {
+   customElements.define(transformTag(tagName), StnCard$1);
+}
+
 const MyComponent = MyComponent$1;
 const defineCustomElement = defineCustomElement$1;
 
@@ -134,6 +139,10 @@ function defineCustomElement$1() {
                 break;
         }
     });
+}
+// Stencil v4.39.0 introduces transformTag helper function for tag name transformations
+if (!customElements.get(tagName + suffix)) {
+    customElements.define(tagName + suffix, StnCard$1);
 }
 const MyComponent = MyComponent$1;
 const defineCustomElement = defineCustomElement$1;
