@@ -290,6 +290,7 @@ async function applyTransformers(
         // Find all instances of `customElements.get('tagName')` and replace them with `customElements.get('tagName' + getCustomSuffix())`
         if (ts.isCallExpression(node)) {
           const expression = node.expression;
+
           if (
             ts.isPropertyAccessExpression(expression) &&
             (expression.name.text === 'get' ||
@@ -297,20 +298,19 @@ async function applyTransformers(
             ts.isIdentifier(expression.expression) &&
             expression.expression.text === 'customElements'
           ) {
-            // Replace the tagname with tagName + getCustomSuffix()
+            // Replace the tag name with tagName + suffix for both `tagName` and `transformTag(tagName)`
             const [firstArg, ...restArgs] = node.arguments;
-            if (
-              firstArg &&
-              ts.isIdentifier(firstArg) &&
-              firstArg.text === 'tagName'
-            ) {
+
+            const tagIdent = firstArg ? tagNameFromArg(firstArg) : undefined;
+
+            if (tagIdent) {
               const newArgument = ts.factory.createBinaryExpression(
-                firstArg,
+                tagIdent,
                 ts.SyntaxKind.PlusToken,
                 ts.factory.createIdentifier('suffix'),
               );
 
-              newNode = ts.factory.updateCallExpression(
+              return ts.factory.updateCallExpression(
                 node,
                 node.expression,
                 node.typeArguments,
@@ -531,6 +531,24 @@ const configImport = ts.factory.createImportDeclaration(
   ts.factory.createStringLiteral(relativePath + fileName),
 );
 
+function tagNameFromArg(arg: ts.Expression): ts.Identifier | undefined {
+  // Case 1: plain `tagName`
+  if (ts.isIdentifier(arg) && arg.text === 'tagName') {
+    return arg;
+  }
+  // Case 2: `transformTag(tagName)`
+  if (
+    ts.isCallExpression(arg) &&
+    ts.isIdentifier(arg.expression) &&
+    arg.expression.text === 'transformTag' &&
+    arg.arguments.length === 1 &&
+    ts.isIdentifier(arg.arguments[0]) &&
+    arg.arguments[0].text === 'tagName'
+  ) {
+    return arg.arguments[0] as ts.Identifier;
+  }
+  return undefined;
+}
 export const target = (): OutputTargetCustom => targetObject;
 
 export function customSuffixOutputTarget(): OutputTarget {
