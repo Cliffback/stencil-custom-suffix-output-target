@@ -5,7 +5,7 @@ import { d as defineCustomElement$4 } from './my-checkbox2.js';
 import { d as defineCustomElement$3 } from './my-icon2.js';
 import { d as defineCustomElement$2 } from './my-spinner2.js';
 
-const myComponentCss = "my-button{background-color:#007bff}my-checkbox{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}";
+const myComponentCss = "my-button{background-color:#007bff}my-checkbox{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}::slotted(my-button){font-weight:bold;}";
 
 const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends HTMLElement {
     constructor() {
@@ -77,7 +77,7 @@ import { d as defineCustomElement$5 } from "./my-button2.js";
 import { d as defineCustomElement$4 } from "./my-checkbox2.js";
 import { d as defineCustomElement$3 } from "./my-icon2.js";
 import { d as defineCustomElement$2 } from "./my-spinner2.js";
-const myComponentCss = \`my-button\${suffix}{background-color:#007bff}my-checkbox\${suffix}{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}\`;
+const myComponentCss = \`my-button\${suffix}{background-color:#007bff}my-checkbox\${suffix}{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}::slotted(my-button\${suffix}){font-weight:bold;}\`;
 const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends HTMLElement {
     constructor() {
         super();
