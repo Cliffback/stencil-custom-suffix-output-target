@@ -155,7 +155,10 @@ export const config: Config = {
     tagNameTransform: true,
   },
   outputTargets: [
-    { type: 'dist-custom-elements' },
+    { 
+      type: 'dist-custom-elements',
+      minify: false, // required from Stencil v3.40.0 onwards
+    },
     customSuffixOutputTarget(),
   ],
 };
