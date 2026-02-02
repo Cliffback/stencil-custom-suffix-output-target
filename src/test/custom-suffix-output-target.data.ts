@@ -24,7 +24,7 @@ const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends
         this.el.querySelector('my-component:pseudo-class');
         this.el.querySelector('my-checkbox');
         this.el.querySelector('my-button');
-        return (h(Host, { key: '5ef84b3e706ca72cc500a1b61e141eced318a02b' }, h("slot", { onSlotchange: this.handleSlotChange, name: "my-card" + suffix }), h("div", { key: '8f31ecdb2d02770ec98aedb3fb2ecd356cafe70f' }, h("span", { key: '5872f0b4844490cbb16388065d5c1215603fb626' }, "Hello, World!"), h("my-button", { key: '3db7e9a0b09b9a298e47211007819383ef683749' }, "Click me!"), h("my-checkbox", { key: '085ed1f662211ea5ec5f377309cfeb26a8cafcd0' }, "Check me!"))));
+        return (h(Host, { key: '5ef84b3e706ca72cc500a1b61e141eced318a02b' }, h("div", { key: '8f31ecdb2d02770ec98aedb3fb2ecd356cafe70f' }, h("span", { key: '5872f0b4844490cbb16388065d5c1215603fb626' }, "Hello, World!"), h("my-button", { key: '3db7e9a0b09b9a298e47211007819383ef683749' }, "Click me!"), h("my-checkbox", { key: '085ed1f662211ea5ec5f377309cfeb26a8cafcd0' }, "Check me!"))));
     }
     get el() { return this; }
     static get style() { return myComponentCss; }
@@ -100,7 +100,7 @@ const MyComponent$1 = /*@__PURE__*/ proxyCustomElement(class MyComponent extends
         this.el.querySelector(\`my-component\${suffix}:pseudo-class\`);
         this.el.querySelector(\`my-checkbox\${suffix}\`);
         this.el.querySelector(\`my-button\${suffix}\`);
-        return (h(Host, { key: "5ef84b3e706ca72cc500a1b61e141eced318a02b" }, h("slot", { onSlotchange: this.handleSlotChange, name: "my-card" + suffix }), h("div", { key: "8f31ecdb2d02770ec98aedb3fb2ecd356cafe70f" }, h("span", { key: "5872f0b4844490cbb16388065d5c1215603fb626" }, "Hello, World!"), h("my-button" + suffix, { key: "3db7e9a0b09b9a298e47211007819383ef683749" }, "Click me!"), h("my-checkbox" + suffix, { key: "085ed1f662211ea5ec5f377309cfeb26a8cafcd0" }, "Check me!"))));
+        return (h(Host, { key: "5ef84b3e706ca72cc500a1b61e141eced318a02b" }, h("div", { key: "8f31ecdb2d02770ec98aedb3fb2ecd356cafe70f" }, h("span", { key: "5872f0b4844490cbb16388065d5c1215603fb626" }, "Hello, World!"), h("my-button" + suffix, { key: "3db7e9a0b09b9a298e47211007819383ef683749" }, "Click me!"), h("my-checkbox" + suffix, { key: "085ed1f662211ea5ec5f377309cfeb26a8cafcd0" }, "Check me!"))));
     }
     get el() { return this; }
     static get style() { return myComponentCss; }
