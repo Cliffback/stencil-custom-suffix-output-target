@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.0...v2.0.1) (2026-02-02)
+
+
+### Bug Fixes
+
+* revert onSlotchange  ([273b000](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/273b000075111ff7c5b36c02ca1e9301dcf29189))
+
 ## [2.0.0](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v1.6.1...v2.0.0) (2026-01-30)
 
 
