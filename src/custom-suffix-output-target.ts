@@ -279,7 +279,11 @@ export async function processCSS(
   code: string,
   tagNames: string[],
 ): Promise<string> {
-  const cssRegex = /const\s+(\w+Css)\s*=\s*"((?:\\.|[^"\\])*)"/g;
+  // Matches both old Stencil (<4.43) and new Stencil (>=4.43) CSS emission:
+  //   Old: const fooCSS = "...";
+  //   New: const fooCSS = () => `...`;
+  const cssRegex =
+    /const\s+(\w+Css)\s*=\s*(?:(\(\)\s*=>\s*)`((?:\\.|[^`\\])*)`|"((?:\\.|[^"\\])*)")/g;
 
   let match: RegExpExecArray | null = cssRegex.exec(code);
 
@@ -291,11 +295,10 @@ export async function processCSS(
   };
 
   while (match !== null) {
-    const [fullMatch, varName, cssContent] = match as unknown as [
-      string,
-      string,
-      string,
-    ];
+    const fullMatch = match[0];
+    const varName = match[1];
+    const isLazy = match[2] !== undefined;
+    const cssContent = (match[3] ?? match[4]) as string;
     const result = await postcss([
       (root: postcss.Root) => {
         root.walkRules((rule) => {
@@ -329,7 +332,9 @@ export async function processCSS(
       },
     ]).process(cssContent, { parser: postcssSafeParser, from: undefined });
 
-    const updatedInitializer = `\`${result.css}\``;
+    const updatedInitializer = isLazy
+      ? `() => \`${result.css}\``
+      : `\`${result.css}\``;
     code = code.replace(fullMatch, `const ${varName} = ${updatedInitializer}`);
     match = cssRegex.exec(code);
   }
