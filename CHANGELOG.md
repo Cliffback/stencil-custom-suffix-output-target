@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.1...v2.0.2) (2026-05-28)
+
+
+### Bug Fixes
+
+* support Stencil &gt;=4.43 lazy CSS arrow function emission ([#44](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/44)) ([70693cb](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/70693cb923a2bdc9408895da9eaee1ae19b47ae9))
+
 ## [2.0.1](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.0...v2.0.1) (2026-02-02)
 
 
