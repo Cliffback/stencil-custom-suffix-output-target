@@ -31,6 +31,27 @@ describe('customSuffixOutputTarget', () => {
     expect(patchedContent).toBe(testData.expectedOutput);
   });
 
+  it('should patch CSS selectors when Stencil emits lazy () => `...` CSS initializers', async () => {
+    const lazyCssInput = testData.input.replace(
+      /const myComponentCss = "((?:\\.|[^"\\])*)";/,
+      (_, css) => `const myComponentCss = () => \`${css}\`;`,
+    );
+
+    setup.fileSystem[setup.fullPath] = lazyCssInput;
+
+    const outputTarget = target();
+    await outputTarget.generator(...setup.generatorParams);
+
+    const patchedContent = await setup.compiler.fs.readFile(setup.fullPath);
+
+    // CSS should be patched with suffix AND preserve the arrow function wrapper
+    expect(patchedContent).toContain(
+      'const myComponentCss = () => `my-button${suffix}{background-color:#007bff}my-checkbox${suffix}{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}::slotted(my-button${suffix}){font-weight:bold;}`',
+    );
+    // Verify it's NOT a bare template literal (no arrow function lost)
+    expect(patchedContent).not.toContain('const myComponentCss = `');
+  });
+
   it('should skip processing if tagNameTransform is not enabled', async () => {
     if (setup.config.extras) {
       setup.config.extras.tagNameTransform = false;
