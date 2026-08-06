@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.2...v2.0.3) (2026-08-06)
+
+
+### Bug Fixes
+
+* skip components whose files cannot be read ([#48](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/48)) ([1739240](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/17392408578c7443a416ce62e0818f6a337d0cee))
+
 ## [2.0.2](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.1...v2.0.2) (2026-05-28)
 
 
