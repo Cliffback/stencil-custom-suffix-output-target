@@ -44,14 +44,19 @@ const targetObject = {
       let filePath = `${outputDir}/${cmp.tagName}2.js`;
       let originalContent = await compilerCtx.fs
         .readFile(filePath)
-        .catch(() => '');
+        .catch(() => undefined);
 
       if (originalContent === undefined) {
         filePath = `${outputDir}/${cmp.tagName}.js`;
         originalContent = await compilerCtx.fs
           .readFile(filePath)
-          .catch(() => '');
+          .catch(() => undefined);
       }
+
+      if (originalContent === undefined) {
+        continue;
+      }
+
       const transformedContent = await applyTransformers(
         filePath,
         originalContent,
