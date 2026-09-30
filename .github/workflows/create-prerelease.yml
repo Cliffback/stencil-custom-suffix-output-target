@@ -8,6 +8,10 @@ on:
         required: true
         default: "experimental"
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   publish-prerelease:
     runs-on: ubuntu-latest
@@ -45,12 +49,10 @@ jobs:
           npm version prerelease --preid "$PREID" --no-git-tag-version
           echo "Version set to: $(node -p "require('./package.json').version")"
 
-      - name: Publish to npm (dist-tag)
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          TAG="${{ github.event.inputs.dist_tag }}"
-          npm publish --tag "$TAG" --access public
+       - name: Publish to npm (dist-tag)
+         run: |
+           TAG="${{ github.event.inputs.dist_tag }}"
+           npm publish --tag "$TAG" --access public
 
       - name: Output published version and tag
         run: |
