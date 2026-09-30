@@ -1,11 +1,5 @@
 /** biome-ignore-all lint/suspicious/noTemplateCurlyInString: This is intended to create a template literal in the final output */
-import type { Config } from '@stencil/core';
-import type {
-  BuildCtx,
-  CompilerCtx,
-  OutputTarget,
-  OutputTargetCustom,
-} from '@stencil/core/internal';
+import type { OutputTarget, OutputTargetCustom } from '@stencil/core/compiler';
 import { parse, SelectorType, stringify } from 'css-what';
 import postcss from 'postcss';
 import postcssSafeParser from 'postcss-safe-parser';
@@ -25,12 +19,8 @@ import {
 const targetObject = {
   type: 'custom',
   name: 'custom-suffix-output-target',
-  generator: async (
-    _config: Config,
-    compilerCtx: CompilerCtx,
-    buildCtx: BuildCtx,
-  ) => {
-    if (!_config.extras?.tagNameTransform) return;
+  generator: async (_config, compilerCtx, buildCtx) => {
+    if (!_config.compat?.additionalTagTransformers) return;
 
     const { outputDir, configPath, typesPath } = new CustomSuffixHelper(
       _config,
