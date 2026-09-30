@@ -8,13 +8,12 @@ on:
         required: true
         default: "experimental"
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   publish-prerelease:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout (same ref as UI selector)
         uses: actions/checkout@v4
@@ -22,7 +21,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+           node-version: 24
           cache: npm
           registry-url: 'https://registry.npmjs.org'
 
