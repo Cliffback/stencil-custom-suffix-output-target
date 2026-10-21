@@ -17,6 +17,7 @@
 - [🔃 Updating Tag Names](#-updating-tag-names)
 - [❗ Limitations](#-limitations)
 - [❓ FAQ](#-faq)
+- [🧪 Prereleases](#-prereleases)
 
 ---
 
@@ -235,3 +236,24 @@ Yes — it works with plain web components or other frameworks as long as you ma
 If no suffix is set, the default tag names will be used, which may cause conflicts if multiple versions are loaded together, but it will not break the build as long as the tag names in your source corresponds with the suffix.
 
 ---
+
+## 🧪 Prereleases
+
+Experimental builds of any branch can be published to npm without affecting `latest`.
+
+Run the **Release Please** workflow manually (Actions → Release Please → Run workflow), pick the branch and a dist-tag (default `experimental`), or use the GitHub CLI:
+
+```bash
+gh workflow run release-please.yml --ref <branch> -f dist_tag=experimental
+```
+
+This publishes `<current-version>-<dist-tag>.<short-sha>.0` under that dist-tag. No git tag or GitHub release is created.
+
+Install it with:
+
+```bash
+npm install stencil-custom-suffix-output-target@experimental
+```
+
+> [!NOTE]
+> Publishing uses npm trusted publishing, which only trusts `release-please.yml`. Add new publish jobs to that workflow rather than creating a separate one.
