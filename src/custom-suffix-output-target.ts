@@ -1,339 +1,208 @@
-/** biome-ignore-all lint/suspicious/noTemplateCurlyInString: This is intended to create a template literal in the final output */
+import path from 'node:path';
 import type { OutputTarget, OutputTargetCustom } from '@stencil/core/compiler';
-import { parse, SelectorType, stringify } from 'css-what';
-import postcss from 'postcss';
-import postcssSafeParser from 'postcss-safe-parser';
-import postcssSelectorParser, {
-  type Pseudo,
-  type Root,
-  type Selector,
-  type Tag,
-} from 'postcss-selector-parser';
 import ts from 'typescript';
 import {
   CustomSuffixHelper,
-  fileName,
-  relativePath,
+  suffixModuleFileName,
 } from './custom-suffix-utils.ts';
+
+type CompilerFs = {
+  readFile: (filePath: string) => Promise<string>;
+  writeFile: (filePath: string, content: string) => Promise<unknown>;
+};
+
+const SET_TAG_TRANSFORMER = 'setTagTransformer';
+const INDEX_FILE = 'index.js';
 
 const targetObject = {
   type: 'custom',
   name: 'custom-suffix-output-target',
-  generator: async (_config, compilerCtx, buildCtx) => {
-    if (!_config.compat?.additionalTagTransformers) return;
-
-    const { outputDir, configPath, typesPath } = new CustomSuffixHelper(
-      _config,
-    );
-
-    if (outputDir === undefined) return;
-
-    const tagNames = buildCtx.components.map((cmp) => cmp.tagName);
-
-    for (const cmp of buildCtx.components) {
-      let filePath = `${outputDir}/${cmp.tagName}2.js`;
-      let originalContent = await compilerCtx.fs
-        .readFile(filePath)
-        .catch(() => undefined);
-
-      if (originalContent === undefined) {
-        filePath = `${outputDir}/${cmp.tagName}.js`;
-        originalContent = await compilerCtx.fs
-          .readFile(filePath)
-          .catch(() => undefined);
-      }
-
-      if (originalContent === undefined) {
-        continue;
-      }
-
-      const transformedContent = await applyTransformers(
-        filePath,
-        originalContent,
-        tagNames,
-      );
-
-      await compilerCtx.fs.writeFile(filePath, transformedContent);
-    }
-
-    // Transform components.d.ts
-    const componentTypes = await compilerCtx.fs
-      .readFile(typesPath)
-      .catch(() => undefined);
-
-    if (componentTypes !== undefined) {
-      const transformed = transformDtsInterfaces(
-        typesPath,
-        componentTypes,
-        tagNames,
-      );
-      if (transformed !== componentTypes) {
-        await compilerCtx.fs.writeFile(typesPath, transformed);
-        buildCtx.debug?.(`Transformed declaration file: ${typesPath}`);
-      }
-    }
-
-    // Generate the custom suffix config file
-    if (fileName === undefined || typeof fileName !== 'string') {
-      buildCtx.debug('Custom suffix config file name is undefined');
+  generator: async (config, compilerCtx, buildCtx) => {
+    if (!config.compat?.additionalTagTransformers) {
+      buildCtx.diagnostics.push({
+        level: 'warn',
+        type: 'build',
+        header: 'custom-suffix-output-target',
+        messageText:
+          '`compat.additionalTagTransformers` is not enabled, so tag names will not be suffixed.',
+        lines: [],
+      });
       return;
     }
-    const configContent = JSON.stringify('');
 
-    await compilerCtx.fs.writeFile(configPath, configContent);
+    const { outputDirs, configPath, typesPath } = new CustomSuffixHelper(
+      config,
+    );
+    const tagNames = buildCtx.components.map((cmp) => cmp.tagName);
+
+    for (const outputDir of outputDirs) {
+      await writeSuffixModule(compilerCtx.fs, outputDir, configPath, tagNames);
+    }
+
+    await transformComponentTypes(compilerCtx.fs, typesPath, tagNames);
+
+    await compilerCtx.fs.writeFile(configPath, JSON.stringify(''));
     buildCtx.debug('Generated custom suffix config file');
   },
 } satisfies OutputTargetCustom;
 
-async function applyTransformers(
-  fileName: string,
-  content: string,
+/**
+ * Writes a module that registers a Stencil tag transformer appending the
+ * runtime suffix, and imports it from every entry so it runs before any
+ * component is defined or rendered.
+ */
+async function writeSuffixModule(
+  fs: CompilerFs,
+  outputDir: string,
+  configPath: string,
   tagNames: string[],
-): Promise<string> {
+): Promise<void> {
+  const indexContent = await readOptional(fs, path.join(outputDir, INDEX_FILE));
+  if (indexContent === undefined) return;
+
+  const runtimeImport = findRuntimeExport(indexContent, SET_TAG_TRANSFORMER);
+  if (runtimeImport === undefined) {
+    throw new Error(
+      `custom-suffix-output-target: could not find \`${SET_TAG_TRANSFORMER}\` in ${path.join(outputDir, INDEX_FILE)}`,
+    );
+  }
+
+  const suffixModule = createSuffixModule(
+    toImportPath(path.relative(outputDir, configPath)),
+    runtimeImport,
+    tagNames,
+  );
+  await fs.writeFile(path.join(outputDir, suffixModuleFileName), suffixModule);
+
+  const entryFiles = [
+    INDEX_FILE,
+    ...tagNames.flatMap((tag) => [`${tag}.js`, `${tag}2.js`]),
+  ];
+  for (const entryFile of entryFiles) {
+    await prependSuffixImport(fs, path.join(outputDir, entryFile));
+  }
+}
+
+export function createSuffixModule(
+  configImportPath: string,
+  runtimeImport: RuntimeExport,
+  tagNames: string[],
+): string {
+  return [
+    `import suffix from ${JSON.stringify(configImportPath)} with { type: "json" };`,
+    `import { ${runtimeImport.exportName} as ${SET_TAG_TRANSFORMER} } from ${JSON.stringify(runtimeImport.moduleSpecifier)};`,
+    `const tagNames = new Set(${JSON.stringify(tagNames)});`,
+    'if (suffix) {',
+    `  ${SET_TAG_TRANSFORMER}((tag) => (tagNames.has(tag) ? tag + suffix : tag));`,
+    '}',
+    '',
+  ].join('\n');
+}
+
+async function prependSuffixImport(
+  fs: CompilerFs,
+  filePath: string,
+): Promise<void> {
+  const content = await readOptional(fs, filePath);
+  if (content === undefined) return;
+
+  const suffixImport = `import "./${suffixModuleFileName}";`;
+  if (content.startsWith(suffixImport)) return;
+
+  await fs.writeFile(filePath, `${suffixImport}\n${content}`);
+}
+
+export interface RuntimeExport {
+  moduleSpecifier: string;
+  exportName: string;
+}
+
+/**
+ * Resolves where `publicName` is imported from in the generated `index.js`.
+ * The runtime chunk mangles its export names, but the index re-exports the
+ * public name, so following that export back to its import gives the
+ * runtime module and its mangled export name, even in minified output.
+ */
+export function findRuntimeExport(
+  indexContent: string,
+  publicName: string,
+): RuntimeExport | undefined {
   const sourceFile = ts.createSourceFile(
-    fileName,
-    content,
+    INDEX_FILE,
+    indexContent,
     ts.ScriptTarget.Latest,
   );
 
-  const transformer = (context: ts.TransformationContext) => {
-    return (rootNode: ts.SourceFile) => {
-      function visit(node: ts.Node): ts.Node {
-        let newNode: ts.Node = node;
+  const localName = findExportedLocalName(sourceFile, publicName);
+  if (localName === undefined) return undefined;
 
-        // Find all instances of `h('tagName')` and replace them with `h('tagName' + getCustomSuffix())`
-        if (
-          ts.isCallExpression(node) &&
-          ts.isIdentifier(node.expression) &&
-          node.expression.text === 'h'
-        ) {
-          const componentName = node.arguments[0];
-          if (
-            ts.isStringLiteral(componentName) &&
-            tagNames.some((tag) => componentName.text.startsWith(tag))
-          ) {
-            const customTagNameExpression = ts.factory.createBinaryExpression(
-              ts.factory.createStringLiteral(componentName.text),
-              ts.SyntaxKind.PlusToken,
-              ts.factory.createIdentifier('suffix'),
-            );
-
-            newNode = ts.factory.updateCallExpression(
-              node,
-              node.expression,
-              node.typeArguments,
-              [customTagNameExpression, ...node.arguments.slice(1)],
-            );
-          }
-        }
-
-        // Find all instances of query selectors targeting the tagname and add the custom suffix as a template literal
-        if (
-          ts.isCallExpression(node) &&
-          ts.isPropertyAccessExpression(node.expression)
-        ) {
-          const SUFFIX_PLACEHOLDER = '__SUFFIX__';
-          const methodName = node.expression.name.text;
-
-          if (
-            (methodName === 'querySelector' ||
-              methodName === 'querySelectorAll' ||
-              methodName === 'createElement') &&
-            node.arguments.length > 0
-          ) {
-            const selectorArgument = node.arguments[0];
-
-            if (ts.isStringLiteral(selectorArgument)) {
-              const selectorText = selectorArgument.text;
-              const parsed = parse(selectorText);
-
-              let modified = false;
-
-              const reconstructed = parsed.map((subSelector) =>
-                subSelector.map((token) => {
-                  if (
-                    token.type === SelectorType.Tag &&
-                    tagNames.includes(token.name)
-                  ) {
-                    modified = true;
-                    return {
-                      ...token,
-                      name: `${token.name}${SUFFIX_PLACEHOLDER}`,
-                    };
-                  }
-                  return token;
-                }),
-              );
-
-              if (modified) {
-                const selectorWithPlaceholder = stringify(reconstructed); // e.g., "div > my-tag__SUFFIX__ + other-tag"
-                const parts = selectorWithPlaceholder.split(SUFFIX_PLACEHOLDER);
-
-                const templateHead = ts.factory.createTemplateHead(parts[0]);
-                const templateSpans = parts
-                  .slice(1)
-                  .map((part, index) =>
-                    ts.factory.createTemplateSpan(
-                      ts.factory.createIdentifier('suffix'),
-                      index === parts.length - 2
-                        ? ts.factory.createTemplateTail(part)
-                        : ts.factory.createTemplateMiddle(part),
-                    ),
-                  );
-
-                const templateExpression = ts.factory.createTemplateExpression(
-                  templateHead,
-                  templateSpans,
-                );
-
-                newNode = ts.factory.updateCallExpression(
-                  node,
-                  node.expression,
-                  node.typeArguments,
-                  [templateExpression, ...node.arguments.slice(1)],
-                );
-              }
-            }
-          }
-        }
-
-        // Handle cases like `if (elem.tagName === "MY-TAG")`
-        if (ts.isStringLiteral(node)) {
-          const tagName = node.text;
-          if (tagNames.some((tag) => tag.toUpperCase() === tagName)) {
-            const customTagNameExpression = ts.factory.createBinaryExpression(
-              node,
-              ts.SyntaxKind.PlusToken,
-              ts.factory.createCallExpression(
-                ts.factory.createPropertyAccessExpression(
-                  ts.factory.createIdentifier('suffix'),
-                  ts.factory.createIdentifier('toUpperCase'),
-                ),
-                undefined,
-                [],
-              ),
-            );
-
-            return customTagNameExpression;
-          }
-        }
-
-        // Find all instances of `customElements.get('tagName')` and replace them with `customElements.get('tagName' + getCustomSuffix())`
-        if (ts.isCallExpression(node)) {
-          const expression = node.expression;
-
-          if (
-            ts.isPropertyAccessExpression(expression) &&
-            (expression.name.text === 'get' ||
-              expression.name.text === 'define') &&
-            ts.isIdentifier(expression.expression) &&
-            expression.expression.text === 'customElements'
-          ) {
-            // Replace the tag name with tagName + suffix for both `tagName` and `transformTag(tagName)`
-            const [firstArg, ...restArgs] = node.arguments;
-
-            const tagIdent = firstArg ? tagNameFromArg(firstArg) : undefined;
-
-            if (tagIdent) {
-              const newArgument = ts.factory.createBinaryExpression(
-                tagIdent,
-                ts.SyntaxKind.PlusToken,
-                ts.factory.createIdentifier('suffix'),
-              );
-
-              return ts.factory.updateCallExpression(
-                node,
-                node.expression,
-                node.typeArguments,
-                [newArgument, ...restArgs],
-              );
-            }
-          }
-        }
-
-        return ts.visitEachChild(newNode, visit, context);
-      }
-      const newSourceFile = ts.factory.updateSourceFile(rootNode, [
-        configImport,
-        ...rootNode.statements,
-      ]);
-      return ts.visitNode(newSourceFile, visit) as ts.SourceFile;
-    };
-  };
-
-  const result = ts.transform(sourceFile, [transformer]);
-  const printer = ts.createPrinter();
-  const transformedCode = printer.printFile(result.transformed[0]);
-
-  // Process CSS asynchronously after the AST transformation
-  const processedCode = await processCSS(transformedCode, tagNames);
-  return processedCode;
+  return findImportOfLocal(sourceFile, localName);
 }
 
-export async function processCSS(
-  code: string,
-  tagNames: string[],
-): Promise<string> {
-  // Matches both old Stencil (<4.43) and new Stencil (>=4.43) CSS emission:
-  //   Old: const fooCSS = "...";
-  //   New: const fooCSS = () => `...`;
-  const cssRegex =
-    /const\s+(\w+Css)\s*=\s*(?:(\(\)\s*=>\s*)`((?:\\.|[^`\\])*)`|"((?:\\.|[^"\\])*)")/g;
+function findExportedLocalName(
+  sourceFile: ts.SourceFile,
+  publicName: string,
+): string | undefined {
+  for (const statement of sourceFile.statements) {
+    if (!isNamedExportWithoutSource(statement)) continue;
 
-  let match: RegExpExecArray | null = cssRegex.exec(code);
-
-  // Helper to add ${suffix} to a tag node if it matches and is not already suffixed
-  const maybeSuffixTag = (tag: Tag) => {
-    if (tagNames.includes(tag.value) && !tag.value.endsWith('${suffix}')) {
-      tag.value += '${suffix}';
+    for (const specifier of statement.exportClause.elements) {
+      if (specifier.name.text !== publicName) continue;
+      return (specifier.propertyName ?? specifier.name).text;
     }
-  };
-
-  while (match !== null) {
-    const fullMatch = match[0];
-    const varName = match[1];
-    const isLazy = match[2] !== undefined;
-    const cssContent = (match[3] ?? match[4]) as string;
-    const result = await postcss([
-      (root: postcss.Root) => {
-        root.walkRules((rule) => {
-          rule.selectors = rule.selectors.map((sel) => {
-            const parsed = postcssSelectorParser().astSync(
-              sel,
-            ) as unknown as Root;
-
-            // Handle plain tag selectors (e.g., my-button, my-checkbox)
-            parsed.walkTags((tag) => {
-              maybeSuffixTag(tag);
-            });
-
-            // Handle tags inside :slotted(...) or ::slotted(...)
-            parsed.walkPseudos((pseudo: Pseudo) => {
-              if (pseudo.value === ':slotted' || pseudo.value === '::slotted') {
-                if (pseudo.nodes && pseudo.nodes.length > 0) {
-                  pseudo.nodes.forEach((n) => {
-                    const selNode = n as unknown as Selector;
-                    selNode.walkTags((tag) => {
-                      maybeSuffixTag(tag);
-                    });
-                  });
-                }
-              }
-            });
-
-            return parsed.toString();
-          });
-        });
-      },
-    ]).process(cssContent, { parser: postcssSafeParser, from: undefined });
-
-    const updatedInitializer = isLazy
-      ? `() => \`${result.css}\``
-      : `\`${result.css}\``;
-    code = code.replace(fullMatch, `const ${varName} = ${updatedInitializer}`);
-    match = cssRegex.exec(code);
   }
-  return code;
+  return undefined;
+}
+
+function isNamedExportWithoutSource(
+  statement: ts.Statement,
+): statement is ts.ExportDeclaration & { exportClause: ts.NamedExports } {
+  return (
+    ts.isExportDeclaration(statement) &&
+    statement.moduleSpecifier === undefined &&
+    statement.exportClause !== undefined &&
+    ts.isNamedExports(statement.exportClause)
+  );
+}
+
+function findImportOfLocal(
+  sourceFile: ts.SourceFile,
+  localName: string,
+): RuntimeExport | undefined {
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement)) continue;
+    if (!ts.isStringLiteral(statement.moduleSpecifier)) continue;
+
+    const namedBindings = statement.importClause?.namedBindings;
+    if (!namedBindings || !ts.isNamedImports(namedBindings)) continue;
+
+    for (const specifier of namedBindings.elements) {
+      if (specifier.name.text !== localName) continue;
+      return {
+        moduleSpecifier: statement.moduleSpecifier.text,
+        exportName: (specifier.propertyName ?? specifier.name).text,
+      };
+    }
+  }
+  return undefined;
+}
+
+async function transformComponentTypes(
+  fs: CompilerFs,
+  typesPath: string,
+  tagNames: string[],
+): Promise<void> {
+  const componentTypes = await readOptional(fs, typesPath);
+  if (!componentTypes) return;
+
+  const transformed = transformDtsInterfaces(
+    typesPath,
+    componentTypes,
+    tagNames,
+  );
+  if (transformed !== componentTypes) {
+    await fs.writeFile(typesPath, transformed);
+  }
 }
 
 /**
@@ -343,11 +212,10 @@ export async function processCSS(
  * So instead of just:
  *   "stn-button": HTMLStnButtonElement;
  * we also get:
- *   [key: `stn-button${string}`]: HTMLStnButtonElement;
+ *   [key: `stn-button--${string}`]: HTMLStnButtonElement;
  *
  * Works across all interfaces in the file. Keeps the original RHS type intact.
  */
-
 function transformDtsInterfaces(
   fileName: string,
   content: string,
@@ -365,87 +233,19 @@ function transformDtsInterfaces(
     (context) => (root) => {
       const visit: ts.Visitor = (node) => {
         if (ts.isInterfaceDeclaration(node)) {
-          // Track existing index signatures of the form [key: `tag${string}`]
-          const existingIndexKeys = new Set<string>();
-          for (const m of node.members) {
-            if (!ts.isIndexSignatureDeclaration(m) || m.parameters.length === 0)
-              continue;
-            const p = m.parameters[0];
-            const t = p.type;
-            if (t && ts.isTemplateLiteralTypeNode(t)) {
-              const head = t.head.text; // literal head text (e.g., "stn-button")
-              const oneSpan =
-                t.templateSpans.length === 1 &&
-                t.templateSpans[0].type.kind === ts.SyntaxKind.StringKeyword &&
-                t.templateSpans[0].literal.text === '';
-              if (oneSpan) existingIndexKeys.add(head);
-            }
-          }
-
-          // Rebuild members: drop matching properties, enqueue index signatures to add
-          const newMembers: ts.TypeElement[] = [];
-          const indexPerTag = new Map<string, ts.TypeNode>(); // tag -> RHS type
-
-          for (const m of node.members) {
-            if (
-              ts.isPropertySignature(m) &&
-              m.name &&
-              ts.isStringLiteral(m.name)
-            ) {
-              const tag = m.name.text;
-              if (tagNames.includes(tag)) {
-                const rhs =
-                  m.type ??
-                  ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword);
-                if (!existingIndexKeys.has(tag) && !indexPerTag.has(tag)) {
-                  indexPerTag.set(tag, rhs);
-                }
-                // Keep the original property
-                newMembers.push(m);
-                // Add the replacement index signature after it
-                const param = ts.factory.createParameterDeclaration(
-                  undefined,
-                  undefined,
-                  ts.factory.createIdentifier('key'),
-                  undefined,
-                  ts.factory.createTemplateLiteralType(
-                    ts.factory.createTemplateHead(`${tag}--`),
-                    [
-                      ts.factory.createTemplateLiteralTypeSpan(
-                        ts.factory.createKeywordTypeNode(
-                          ts.SyntaxKind.StringKeyword,
-                        ),
-                        ts.factory.createTemplateTail(''),
-                      ),
-                    ],
-                  ),
-                  undefined,
-                );
-                const indexSig = ts.factory.createIndexSignature(
-                  /*modifiers*/ undefined,
-                  /*parameters*/ [param],
-                  /*type*/ rhs,
-                );
-                newMembers.push(indexSig);
-                continue;
-              }
-            }
-            newMembers.push(m);
-          }
-
           return ts.factory.updateInterfaceDeclaration(
             node,
             node.modifiers,
             node.name,
             node.typeParameters,
             node.heritageClauses,
-            newMembers,
+            addSuffixIndexSignatures(node.members, tagNames),
           );
         }
         return ts.visitEachChild(node, visit, context);
       };
 
-      return ts.visitNode(root, visit) as ts.SourceFile;
+      return ts.visitNode(root, visit, ts.isSourceFile);
     };
 
   const result = ts.transform(sourceFile, [transformer]);
@@ -457,34 +257,82 @@ function transformDtsInterfaces(
   }
 }
 
-const configImport = ts.factory.createImportDeclaration(
-  undefined,
-  ts.factory.createImportClause(
-    false,
-    ts.factory.createIdentifier('suffix'),
-    undefined,
-  ),
-  ts.factory.createStringLiteral(relativePath + fileName),
-);
+function addSuffixIndexSignatures(
+  members: ts.NodeArray<ts.TypeElement>,
+  tagNames: string[],
+): ts.TypeElement[] {
+  const existingIndexKeys = new Set(
+    members.flatMap((member) => {
+      const head = suffixIndexSignatureHead(member);
+      return head === undefined ? [] : [head];
+    }),
+  );
 
-function tagNameFromArg(arg: ts.Expression): ts.Identifier | undefined {
-  // Case 1: plain `tagName`
-  if (ts.isIdentifier(arg) && arg.text === 'tagName') {
-    return arg;
-  }
-  // Case 2: `transformTag(tagName)`
-  if (
-    ts.isCallExpression(arg) &&
-    ts.isIdentifier(arg.expression) &&
-    arg.expression.text === 'transformTag' &&
-    arg.arguments.length === 1 &&
-    ts.isIdentifier(arg.arguments[0]) &&
-    arg.arguments[0].text === 'tagName'
-  ) {
-    return arg.arguments[0] as ts.Identifier;
-  }
-  return undefined;
+  return members.flatMap((member) => {
+    if (
+      !ts.isPropertySignature(member) ||
+      !ts.isStringLiteral(member.name) ||
+      !tagNames.includes(member.name.text) ||
+      existingIndexKeys.has(`${member.name.text}--`)
+    ) {
+      return [member];
+    }
+
+    const type =
+      member.type ?? ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword);
+    return [member, createSuffixIndexSignature(member.name.text, type)];
+  });
 }
+
+function suffixIndexSignatureHead(member: ts.TypeElement): string | undefined {
+  if (!ts.isIndexSignatureDeclaration(member)) return undefined;
+
+  const type = member.parameters[0]?.type;
+  if (!type || !ts.isTemplateLiteralTypeNode(type)) return undefined;
+
+  const [span] = type.templateSpans;
+  const isStringSuffix =
+    type.templateSpans.length === 1 &&
+    span.type.kind === ts.SyntaxKind.StringKeyword &&
+    span.literal.text === '';
+  return isStringSuffix ? type.head.text : undefined;
+}
+
+function createSuffixIndexSignature(
+  tag: string,
+  type: ts.TypeNode,
+): ts.IndexSignatureDeclaration {
+  const parameter = ts.factory.createParameterDeclaration(
+    undefined,
+    undefined,
+    ts.factory.createIdentifier('key'),
+    undefined,
+    ts.factory.createTemplateLiteralType(
+      ts.factory.createTemplateHead(`${tag}--`),
+      [
+        ts.factory.createTemplateLiteralTypeSpan(
+          ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+          ts.factory.createTemplateTail(''),
+        ),
+      ],
+    ),
+    undefined,
+  );
+  return ts.factory.createIndexSignature(undefined, [parameter], type);
+}
+
+async function readOptional(
+  fs: CompilerFs,
+  filePath: string,
+): Promise<string | undefined> {
+  return fs.readFile(filePath).catch(() => undefined);
+}
+
+function toImportPath(relativePath: string): string {
+  const posixPath = relativePath.split(path.sep).join('/');
+  return posixPath.startsWith('.') ? posixPath : `./${posixPath}`;
+}
+
 export const target = (): OutputTargetCustom => targetObject;
 
 export function customSuffixOutputTarget(): OutputTarget {

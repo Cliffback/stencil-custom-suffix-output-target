@@ -1,60 +1,104 @@
-import { testData, typesTestData } from './custom-suffix-output-target.data';
+import { findRuntimeExport } from '../custom-suffix-output-target';
+import {
+  standaloneTestData,
+  typesTestData,
+} from './custom-suffix-output-target.data';
 import {
   mockSetup,
   TestComponentSetup,
 } from './custom-suffix-output-target.spec-utils.ts';
 
-describe('customSuffixOutputTarget', () => {
+const SUFFIX_IMPORT = 'import "./custom-suffix.js";';
+
+describe('customSuffixOutputTarget - tag transformer module', () => {
   const setup = new TestComponentSetup({
     tagName: 'my-component',
-    dependencies: ['my-button', 'my-checkbox', 'my-icon', 'my-spinner'],
-    outputPath: '/mock-output-dir',
+    dependencies: ['my-button'],
+    outputPath: '/mock/dist/components',
   });
 
   beforeEach(() => {
     mockSetup(setup);
   });
 
-  it('should process files in the output directory', async () => {
+  it('writes a module that sets a suffixing tag transformer', async () => {
     await setup.runGenerator();
 
-    expect(setup.compiler.fs.readFile).toHaveBeenCalledWith(setup.fullPath);
-    expect(setup.compiler.fs.writeFile).toHaveBeenCalledWith(
-      setup.fullPath,
-      expect.any(String),
-    );
-
-    const patchedContent = await setup.compiler.fs.readFile(setup.fullPath);
-    expect(patchedContent).toBe(testData.expectedOutput);
+    expect(
+      setup.fileSystem[setup.suffixModulePath],
+    ).toBe(`import suffix from "../custom-suffix.json" with { type: "json" };
+import { f as setTagTransformer } from "./runtime.js";
+const tagNames = new Set(["my-component","my-button"]);
+if (suffix) {
+  setTagTransformer((tag) => (tagNames.has(tag) ? tag + suffix : tag));
+}
+`);
   });
 
-  it('should patch CSS selectors when Stencil emits lazy () => `...` CSS initializers', async () => {
-    const lazyCssInput = testData.input.replace(
-      /const myComponentCss = "((?:\\.|[^"\\])*)";/,
-      (_, css) => `const myComponentCss = () => \`${css}\`;`,
-    );
+  it('imports the module from the index and component entries', async () => {
+    await setup.runGenerator();
 
-    setup.fileSystem[setup.fullPath] = lazyCssInput;
+    expect(setup.fileSystem[setup.indexPath]).toBe(
+      `${SUFFIX_IMPORT}\n${standaloneTestData.index}`,
+    );
+    expect(setup.fileSystem[setup.fullPath]).toBe(
+      `${SUFFIX_IMPORT}\n${standaloneTestData.component}`,
+    );
+  });
+
+  it('does not import the module twice when rebuilt', async () => {
+    await setup.runGenerator();
+    await setup.runGenerator();
+
+    expect(setup.fileSystem[setup.fullPath]).toBe(
+      `${SUFFIX_IMPORT}\n${standaloneTestData.component}`,
+    );
+  });
+
+  it('leaves Stencil output otherwise untouched', async () => {
+    await setup.runGenerator();
+
+    expect(setup.fileSystem[setup.fullPath]).not.toContain('+ suffix');
+    expect(setup.fileSystem[setup.fullPath]).toContain(
+      'transformTag("my-button")',
+    );
+  });
+
+  it('writes an empty suffix config next to the output', async () => {
+    await setup.runGenerator();
+
+    expect(setup.fileSystem['/mock/dist/custom-suffix.json']).toBe('""');
+  });
+
+  it('warns and skips when additionalTagTransformers is disabled', async () => {
+    setup.config.compat = { additionalTagTransformers: false };
 
     await setup.runGenerator();
 
-    const patchedContent = await setup.compiler.fs.readFile(setup.fullPath);
+    expect(setup.build.diagnostics).toEqual([
+      expect.objectContaining({ level: 'warn' }),
+    ]);
+    expect(setup.compiler.fs.writeFile).not.toHaveBeenCalled();
+  });
+});
 
-    // CSS should be patched with suffix AND preserve the arrow function wrapper
-    const suffixPlaceholder = '$' + '{suffix}';
-    const expectedCss = `const myComponentCss = () => \`my-button${suffixPlaceholder}{background-color:#007bff}my-checkbox${suffixPlaceholder}{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}::slotted(my-button${suffixPlaceholder}){font-weight:bold;}\``;
-    expect(patchedContent).toContain(expectedCss);
-    // Verify it's NOT a bare template literal (no arrow function lost)
-    expect(patchedContent).not.toContain('const myComponentCss = `');
+describe('findRuntimeExport', () => {
+  it('resolves the runtime export from readable output', () => {
+    expect(
+      findRuntimeExport(standaloneTestData.index, 'setTagTransformer'),
+    ).toEqual({ moduleSpecifier: './runtime.js', exportName: 'f' });
   });
 
-  it('should skip processing if tagNameTransform is not enabled', async () => {
-    if (setup.config.compat) {
-      setup.config.compat.additionalTagTransformers = false;
-      await setup.runGenerator();
+  it('resolves the runtime export from minified output', () => {
+    expect(
+      findRuntimeExport(standaloneTestData.minifiedIndex, 'setTagTransformer'),
+    ).toEqual({ moduleSpecifier: './runtime.js', exportName: 'f' });
+  });
 
-      expect(setup.compiler.fs.readFile).not.toHaveBeenCalled();
-    }
+  it('returns undefined when the name is not exported', () => {
+    expect(
+      findRuntimeExport(standaloneTestData.index, 'notExported'),
+    ).toBeUndefined();
   });
 });
 
@@ -72,43 +116,18 @@ describe('customSuffixOutputTarget - components.d.ts transformation', () => {
   it('should transform components.d.ts with suffixed interface entries', async () => {
     await setup.runGenerator();
 
-    // Check that the types file was read and written
-    expect(setup.compiler.fs.readFile).toHaveBeenCalledWith(setup.typesPath);
-    expect(setup.compiler.fs.writeFile).toHaveBeenCalledWith(
-      setup.typesPath,
-      expect.any(String),
-    );
-
-    // Verify the transformed content
     const transformedTypes = await setup.compiler.fs.readFile(setup.typesPath);
     expect(transformedTypes).toBe(typesTestData.expectedOutput);
   });
 
   it('should not write components.d.ts if file does not exist', async () => {
-    // Mock the readFile to return undefined for types file
-    setup.compiler.fs.readFile = jest.fn(
-      (filePath: string): Promise<string> => {
-        if (filePath === setup.typesPath) {
-          return Promise.resolve('');
-        }
-        if (filePath.endsWith('2.js')) {
-          return Promise.resolve('');
-        }
-        return Promise.resolve(testData.input);
-      },
-    );
+    setup.fileSystem[setup.typesPath] = '';
 
     await setup.runGenerator();
 
-    // Check that we tried to read the types file
-    expect(setup.compiler.fs.readFile).toHaveBeenCalledWith(setup.typesPath);
-
-    // Check that we didn't write the types file (since it doesn't exist)
-    const writeFileCalls = (setup.compiler.fs.writeFile as jest.Mock).mock
-      .calls;
-    const typesWriteCalls = writeFileCalls.filter(
-      (call) => call[0] === setup.typesPath,
-    );
+    const typesWriteCalls = (
+      setup.compiler.fs.writeFile as jest.Mock
+    ).mock.calls.filter((call) => call[0] === setup.typesPath);
     expect(typesWriteCalls.length).toBe(0);
   });
 });
