@@ -76,7 +76,7 @@ export { MyComponent, defineCustomElement };
 
 //# sourceMappingURL=my-component.js.map
 `,
-  expectedOutput: `import suffix from "../custom-suffix.json";
+  expectedOutput: `import suffix from "../custom-suffix.json" with { type: "json" };
 import { proxyCustomElement, HTMLElement, h, Host } from "@stencil/core/internal/client";
 import { d as defineCustomElement$5 } from "./my-button2.js";
 import { d as defineCustomElement$4 } from "./my-checkbox2.js";

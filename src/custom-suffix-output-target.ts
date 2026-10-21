@@ -475,6 +475,14 @@ const configImport = ts.factory.createImportDeclaration(
     undefined,
   ),
   ts.factory.createStringLiteral(relativePath + fileName),
+  ts.factory.createImportAttributes(
+    ts.factory.createNodeArray([
+      ts.factory.createImportAttribute(
+        ts.factory.createIdentifier('type'),
+        ts.factory.createStringLiteral('json'),
+      ),
+    ]),
+  ),
 );
 
 function tagNameFromArg(arg: ts.Expression): ts.Identifier | undefined {
