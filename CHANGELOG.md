@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.3...v2.0.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* add JSON import attribute to custom suffix import ([#51](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/51)) ([e98ae7e](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/e98ae7e9b1fdbed9256f8d308d3ffe3f3d9ca291))
+
 ## [2.0.3](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.2...v2.0.3) (2026-08-06)
 
 
