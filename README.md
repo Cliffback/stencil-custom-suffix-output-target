@@ -150,14 +150,14 @@ import { Config } from '@stencil/core';
 import { customSuffixOutputTarget } from 'stencil-custom-suffix-output-target';
 
 export const config: Config = {
-  extras: {
-    // Enable tag name transformation (required)
-    tagNameTransform: true,
+  compat: {
+    // Enable tag name transformation (required for Stencil v5)
+    additionalTagTransformers: true,
   },
   outputTargets: [
     { 
-      type: 'dist-custom-elements',
-      minify: false, // required from Stencil v3.40.0 onwards
+      type: 'standalone',
+      minify: false,
     },
     customSuffixOutputTarget(),
   ],

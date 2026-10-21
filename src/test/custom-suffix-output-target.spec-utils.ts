@@ -1,24 +1,51 @@
 import path from 'node:path';
-import type { FsWriteResults } from '@stencil/core/compiler/sys/in-memory-fs';
-import type * as d from '@stencil/core/internal';
-import {
-  mockBuildCtx,
-  mockCompilerCtx,
-  mockComponentMeta,
-  mockModule,
-  mockValidatedConfig,
-} from '@stencil/core/testing';
+import type { OutputTargetCustom } from '@stencil/core/compiler';
+import { target } from '../custom-suffix-output-target';
 import { testData, typesTestData } from './custom-suffix-output-target.data.ts';
+
+type GeneratorParameters = Parameters<
+  NonNullable<OutputTargetCustom['generator']>
+>;
+type ValidatedConfig = GeneratorParameters[0];
+type JsonDocs = GeneratorParameters[3];
+
+interface TestComponent {
+  tagName: string;
+}
+
+interface TestCompilerContext {
+  fs: {
+    readFile: (filePath: string) => Promise<string | undefined>;
+    writeFile: (filePath: string, content: string) => Promise<unknown>;
+  };
+}
+
+interface TestBuildContext {
+  components: TestComponent[];
+  debug: jest.Mock;
+}
+
+function invokeGenerator(
+  generator: NonNullable<OutputTargetCustom['generator']>,
+  config: ValidatedConfig,
+  compiler: TestCompilerContext,
+  build: TestBuildContext,
+  docs: JsonDocs,
+) {
+  // The fixture provides only the compiler fields used by this output target.
+  // @ts-expect-error Deliberately narrowed v5 test double.
+  return generator(config, compiler, build, docs);
+}
 
 export class TestComponentSetup {
   tagName: string;
   dependencies: string[];
   outputPath: string;
-  config: d.ValidatedConfig;
-  compiler: d.CompilerCtx;
-  build: d.BuildCtx;
-  fileSystem: d.CompilerSystem;
-  docs: d.JsonDocs;
+  config: ValidatedConfig;
+  compiler: TestCompilerContext;
+  build: TestBuildContext;
+  fileSystem: Record<string, string>;
+  docs: JsonDocs;
 
   constructor({
     tagName,
@@ -38,13 +65,14 @@ export class TestComponentSetup {
     return path.join(this.outputPath, '../', 'types/components.d.ts');
   }
 
-  get generatorParams(): [
-    d.ValidatedConfig,
-    d.CompilerCtx,
-    d.BuildCtx,
-    d.JsonDocs,
-  ] {
-    return [this.config, this.compiler, this.build, this.docs];
+  async runGenerator() {
+    return invokeGenerator(
+      target().generator,
+      this.config,
+      this.compiler,
+      this.build,
+      this.docs,
+    );
   }
 }
 
@@ -63,53 +91,29 @@ export const mockSetup = (setup: TestComponentSetup) => {
     },
     typeLibrary: {},
   };
-  setup.config = mockValidatedConfig({
-    extras: { tagNameTransform: true },
-    outputTargets: [{ type: 'dist-custom-elements', dir: setup.outputPath }],
-  });
+  setup.config = {
+    compat: { additionalTagTransformers: true },
+    outputTargets: [{ type: 'standalone', dir: setup.outputPath }],
+  } as ValidatedConfig;
 
-  setup.fileSystem = setup.config.sys;
-
-  setup.compiler = mockCompilerCtx(setup.config);
-
+  setup.fileSystem = {};
   setup.compiler = {
-    ...setup.compiler,
     fs: {
-      ...setup.compiler.fs,
-      readFile: jest.fn((filePath: string) => {
-        if (filePath.endsWith('2.js')) {
-          return Promise.resolve(undefined);
-        }
-        if (filePath === setup.typesPath) {
-          return Promise.resolve(
-            setup.fileSystem[filePath] ?? typesTestData.input,
-          );
-        }
-        return Promise.resolve(setup.fileSystem[filePath] ?? testData.input);
+      readFile: jest.fn(async (filePath: string) => {
+        if (filePath.endsWith('2.js')) return undefined;
+        if (filePath === setup.typesPath)
+          return setup.fileSystem[filePath] ?? typesTestData.input;
+        return setup.fileSystem[filePath] ?? testData.input;
       }),
-      writeFile: jest.fn((filePath: string, content: string) => {
+      writeFile: jest.fn(async (filePath: string, content: string) => {
         setup.fileSystem[filePath] = content;
-        return Promise.resolve({} as FsWriteResults);
       }),
     },
   };
-
-  setup.compiler.moduleMap.set(
-    'test',
-    mockModule({
-      cmps: [
-        mockComponentMeta({
-          tagName: setup.tagName,
-          dependencies: setup.dependencies,
-        }),
-      ],
-    }),
-  );
-  setup.build = mockBuildCtx(setup.config, setup.compiler);
   setup.build = {
-    ...setup.build,
-    components: [setup.tagName, ...setup.dependencies].map((tagName) =>
-      mockComponentMeta({ tagName: tagName }),
-    ),
+    components: [setup.tagName, ...setup.dependencies].map((tagName) => ({
+      tagName,
+    })),
+    debug: jest.fn(),
   };
 };

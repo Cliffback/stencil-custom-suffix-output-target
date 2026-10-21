@@ -1,4 +1,3 @@
-import { target } from '../custom-suffix-output-target';
 import { testData, typesTestData } from './custom-suffix-output-target.data';
 import {
   mockSetup,
@@ -17,9 +16,7 @@ describe('customSuffixOutputTarget', () => {
   });
 
   it('should process files in the output directory', async () => {
-    const outputTarget = target();
-
-    await outputTarget.generator(...setup.generatorParams);
+    await setup.runGenerator();
 
     expect(setup.compiler.fs.readFile).toHaveBeenCalledWith(setup.fullPath);
     expect(setup.compiler.fs.writeFile).toHaveBeenCalledWith(
@@ -39,24 +36,22 @@ describe('customSuffixOutputTarget', () => {
 
     setup.fileSystem[setup.fullPath] = lazyCssInput;
 
-    const outputTarget = target();
-    await outputTarget.generator(...setup.generatorParams);
+    await setup.runGenerator();
 
     const patchedContent = await setup.compiler.fs.readFile(setup.fullPath);
 
     // CSS should be patched with suffix AND preserve the arrow function wrapper
-    expect(patchedContent).toContain(
-      'const myComponentCss = () => `my-button${suffix}{background-color:#007bff}my-checkbox${suffix}{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}::slotted(my-button${suffix}){font-weight:bold;}`',
-    );
+    const suffixPlaceholder = '$' + '{suffix}';
+    const expectedCss = `const myComponentCss = () => \`my-button${suffixPlaceholder}{background-color:#007bff}my-checkbox${suffixPlaceholder}{border:1px solid #ccc}component{padding:10px}#component{display:block}.component{color:#333}::slotted(my-button${suffixPlaceholder}){font-weight:bold;}\``;
+    expect(patchedContent).toContain(expectedCss);
     // Verify it's NOT a bare template literal (no arrow function lost)
     expect(patchedContent).not.toContain('const myComponentCss = `');
   });
 
   it('should skip processing if tagNameTransform is not enabled', async () => {
-    if (setup.config.extras) {
-      setup.config.extras.tagNameTransform = false;
-      const outputTarget = target();
-      await outputTarget.generator(...setup.generatorParams);
+    if (setup.config.compat) {
+      setup.config.compat.additionalTagTransformers = false;
+      await setup.runGenerator();
 
       expect(setup.compiler.fs.readFile).not.toHaveBeenCalled();
     }
@@ -75,9 +70,7 @@ describe('customSuffixOutputTarget - components.d.ts transformation', () => {
   });
 
   it('should transform components.d.ts with suffixed interface entries', async () => {
-    const outputTarget = target();
-
-    await outputTarget.generator(...setup.generatorParams);
+    await setup.runGenerator();
 
     // Check that the types file was read and written
     expect(setup.compiler.fs.readFile).toHaveBeenCalledWith(setup.typesPath);
@@ -105,8 +98,7 @@ describe('customSuffixOutputTarget - components.d.ts transformation', () => {
       },
     );
 
-    const outputTarget = target();
-    await outputTarget.generator(...setup.generatorParams);
+    await setup.runGenerator();
 
     // Check that we tried to read the types file
     expect(setup.compiler.fs.readFile).toHaveBeenCalledWith(setup.typesPath);
