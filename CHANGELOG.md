@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.5](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.4...v2.0.5) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** bump postcss-selector-parser to ^7.1.7 ([#55](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/55)) ([10da924](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/10da924957f570234185318856fcdd078dd68a52))
+
 ## [2.0.4](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.3...v2.0.4) (2026-10-21)
 
 
