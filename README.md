@@ -71,65 +71,42 @@ flowchart TD
 
 ## 🔧 How It Works
 
+Stencil already routes every tag name through its runtime `transformTag()` when `compat.additionalTagTransformers` is enabled: rendering (`h()`), custom element registration, `querySelector`/`closest` selectors, and tag selectors in component CSS. This output target only supplies the transformer.
+
 During build, the output target:
 
-- Reads the generated JS files in the Stencil `dist` folder (from `dist-custom-elements`).
-- Applies a TypeScript AST + PostCSS transformation:
-  - `h('my-tag') → h('my-tag' + suffix)`
-  - `customElements.get/define('my-tag') → 'my-tag' + suffix`
-  - `querySelector('my-tag') → querySelector('my-tag' + suffix)`
-  - Inline CSS selectors updated (`my-tag {}` → `my-tag${suffix} {}`)
-  - String comparisons like `elem.tagName === 'MY-TAG'` updated
-- Injects a `custom-suffix.json` file into `dist`, read at runtime.
+- Writes a `custom-suffix.js` module to every `standalone` output directory. It reads the suffix from `custom-suffix.json` and calls Stencil's `setTagTransformer()`, appending the suffix to the library's own tag names only.
+- Imports that module from `index.js` and every component file, so the transformer is set before any component is defined or rendered.
+- Adds `` [key: `my-tag--${string}`] `` index signatures to `components.d.ts`, so suffixed tags are typed.
+- Writes an empty `custom-suffix.json` next to the output, which `set-custom-suffix` overwrites in the consuming app.
+
+Component source that compares tag names by hand (e.g. `el.tagName === 'MY-TAG'`) is not transformed. Compare against `transformTag('my-tag')` from `@stencil/core` instead.
 
 ---
 
 ## 📝 Example
 
 <details>
-<summary>Before transformation</summary>
+<summary>Generated <code>custom-suffix.js</code></summary>
 
-```ts
-customElements.define('my-button', MyButton);
-document.querySelector('my-button');
-h('my-button');
-const myCSS = `
-  my-button {
-    /* styles */
-  }
-`;
+```js
+import suffix from "../custom-suffix.json" with { type: "json" };
+import { f as setTagTransformer } from "./runtime.js";
+const tagNames = new Set(["my-button", "my-checkbox"]);
+if (suffix) {
+  setTagTransformer((tag) => (tagNames.has(tag) ? tag + suffix : tag));
+}
 ```
 </details>
 
 <details>
-<summary>After transformation</summary>
+<summary>Component output</summary>
 
-```ts
-import suffix from "../custom-suffix.json";
-
-customElements.define('my-button' + suffix, MyButton);
-document.querySelector(`my-button${suffix}`);
-h('my-button' + suffix);
-const myCSS = `
-  my-button${suffix} {
-    /* styles */
-  }
-`;
-```
-</details>
-
-<details>
-<summary>At runtime (if suffix = "--checkout")</summary>
-
-```ts
-customElements.define('my-button--checkout', MyButton);
-document.querySelector('my-button--checkout');
-h('my-button--checkout');
-const myCSS = `
-  my-button--checkout {
-    /* styles */
-  }
-`;
+```js
+import "./custom-suffix.js";
+// ...unchanged Stencil output, e.g.
+customElements.define(transformTag("my-button"), MyButton);
+const myCss = () => `${transformTag("my-checkbox")} { /* styles */ }`;
 ```
 </details>
 
@@ -211,7 +188,8 @@ After configuring the suffix (and running the angular patch if applicable), you 
 
 ## ❗ Limitations
 
-- Only transforms **`dist/components` output** (from `dist-custom-elements`).
+- Only transforms **`standalone`** output targets (not `loader-bundle`).
+- Requires `compat.additionalTagTransformers: true`.
 - All packages need to be in the same node_modules tree.
 - Requires consumer apps to manage and update `custom-suffix.json`.  
 - Multiple apps must use **different suffixes** to avoid conflicts.
