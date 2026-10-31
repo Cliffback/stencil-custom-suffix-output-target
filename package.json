@@ -31,6 +31,7 @@
   "homepage": "https://github.com/Cliffback/stencil-custom-suffix-output-target#readme",
   "dependencies": {
     "@stencil/core": "5.0.0-beta.13",
+    "postcss-selector-parser": "^7.1.7",
     "typescript": "^5.8.3"
   },
   "devDependencies": {
