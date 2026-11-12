@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      dist_tag:
+        description: "npm dist-tag for an experimental prerelease"
+        required: true
+        default: "experimental"
 
 permissions:
   contents: write
@@ -11,6 +17,7 @@ permissions:
 
 jobs:
   release-please:
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
@@ -39,3 +46,27 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm publish --access public
+
+  publish-prerelease:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm run build
+      - id: version
+        run: |
+          short_sha="$(git rev-parse --short HEAD)"
+          preid="${{ inputs.dist_tag }}.${short_sha}"
+          npm version prerelease --preid "$preid" --no-git-tag-version
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - run: npm publish --tag "${{ inputs.dist_tag }}" --access public
+      - run: echo "Published ${{ steps.version.outputs.version }}"
