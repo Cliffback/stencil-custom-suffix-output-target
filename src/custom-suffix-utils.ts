@@ -1,31 +1,44 @@
 import path from 'node:path';
 import type { Config } from '@stencil/core';
 
-export const outputTarget = 'dist-custom-elements';
-export const standaloneOutputTarget = 'standalone';
+export const outputTarget = 'standalone';
+export const typesOutputTarget = 'types';
 export const relativePath = '../';
 export const fileName = 'custom-suffix.json';
-export const compnentTypesFile = 'types/components.d.ts';
+export const suffixModuleFileName = 'custom-suffix.js';
+export const componentTypesFile = 'components.d.ts';
+export const fallbackTypesDir = 'types';
+
+type ConfigOutputTarget = NonNullable<Config['outputTargets']>[number];
 
 function hasOutputDirectory(
-  target: Config['outputTargets'][number],
-): target is Config['outputTargets'][number] & { dir?: string } {
-  return 'dir' in target;
+  target: ConfigOutputTarget,
+): target is ConfigOutputTarget & { dir?: string } {
+  return 'dir' in target && typeof target.dir === 'string';
+}
+
+function outputDirsOfType(stencilConfig: Config, type: string): string[] {
+  return (stencilConfig.outputTargets ?? []).flatMap((target) =>
+    String(target.type) === type &&
+    hasOutputDirectory(target) &&
+    target.dir !== undefined
+      ? [target.dir]
+      : [],
+  );
 }
 
 export class CustomSuffixHelper {
   constructor(stencilConfig: Config) {
-    const target = stencilConfig.outputTargets?.find(
-      (output) =>
-        output.type === standaloneOutputTarget ||
-        String(output.type) === outputTarget,
-    );
-    this.outputDir =
-      target && hasOutputDirectory(target) ? (target.dir ?? '') : '';
-    this.configPath = path.join(this.outputDir, relativePath, fileName);
-    this.typesPath = path.join(this.outputDir, relativePath, compnentTypesFile);
+    this.outputDirs = outputDirsOfType(stencilConfig, outputTarget);
+    const primaryDir = this.outputDirs[0] ?? '';
+    this.configPath = path.join(primaryDir, relativePath, fileName);
+
+    const typesDir =
+      outputDirsOfType(stencilConfig, typesOutputTarget)[0] ??
+      path.join(primaryDir, relativePath, fallbackTypesDir);
+    this.typesPath = path.join(typesDir, componentTypesFile);
   }
-  outputDir: string;
+  outputDirs: string[];
   configPath: string;
   typesPath: string;
 }

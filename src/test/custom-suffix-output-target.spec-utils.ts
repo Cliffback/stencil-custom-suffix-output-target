@@ -1,7 +1,10 @@
 import path from 'node:path';
 import type { OutputTargetCustom } from '@stencil/core/compiler';
 import { target } from '../custom-suffix-output-target';
-import { testData, typesTestData } from './custom-suffix-output-target.data.ts';
+import {
+  standaloneTestData,
+  typesTestData,
+} from './custom-suffix-output-target.data.ts';
 
 type GeneratorParameters = Parameters<
   NonNullable<OutputTargetCustom['generator']>
@@ -23,6 +26,7 @@ interface TestCompilerContext {
 interface TestBuildContext {
   components: TestComponent[];
   debug: jest.Mock;
+  diagnostics: unknown[];
 }
 
 function invokeGenerator(
@@ -58,7 +62,15 @@ export class TestComponentSetup {
   }
 
   get fullPath(): string {
-    return `${this.outputPath}/${this.tagName}.js`;
+    return path.join(this.outputPath, `${this.tagName}.js`);
+  }
+
+  get indexPath(): string {
+    return path.join(this.outputPath, 'index.js');
+  }
+
+  get suffixModulePath(): string {
+    return path.join(this.outputPath, 'custom-suffix.js');
   }
 
   get typesPath(): string {
@@ -100,10 +112,11 @@ export const mockSetup = (setup: TestComponentSetup) => {
   setup.compiler = {
     fs: {
       readFile: jest.fn(async (filePath: string) => {
-        if (filePath.endsWith('2.js')) return undefined;
-        if (filePath === setup.typesPath)
-          return setup.fileSystem[filePath] ?? typesTestData.input;
-        return setup.fileSystem[filePath] ?? testData.input;
+        if (filePath in setup.fileSystem) return setup.fileSystem[filePath];
+        if (filePath === setup.typesPath) return typesTestData.input;
+        if (filePath === setup.indexPath) return standaloneTestData.index;
+        if (filePath === setup.fullPath) return standaloneTestData.component;
+        throw new Error(`ENOENT: ${filePath}`);
       }),
       writeFile: jest.fn(async (filePath: string, content: string) => {
         setup.fileSystem[filePath] = content;
@@ -115,5 +128,6 @@ export const mockSetup = (setup: TestComponentSetup) => {
       tagName,
     })),
     debug: jest.fn(),
+    diagnostics: [],
   };
 };
