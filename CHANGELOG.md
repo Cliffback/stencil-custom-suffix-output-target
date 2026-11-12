@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.5...v2.1.0) (2026-11-12)
+
+
+### Features
+
+* add --target-dir and --angular-dir options ([#57](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/57)) ([2face8a](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/2face8a172bdb53edd607b887f3ac7f4d4d2c99a))
+
 ## [2.0.5](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.4...v2.0.5) (2026-10-31)
 
 
