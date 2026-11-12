@@ -29,10 +29,23 @@ describe('customSuffixOutputTarget - tag transformer module', () => {
     ).toBe(`import suffix from "../custom-suffix.json" with { type: "json" };
 import { f as setTagTransformer } from "./runtime.js";
 const tagNames = new Set(["my-component","my-button"]);
+export const customSuffix = suffix;
+export const transformCustomTag = (tag) => (suffix && tagNames.has(tag) ? tag + suffix : tag);
 if (suffix) {
-  setTagTransformer((tag) => (tagNames.has(tag) ? tag + suffix : tag));
+  setTagTransformer(transformCustomTag);
 }
 `);
+  });
+
+  it('writes types for the exported suffix and transformer', async () => {
+    await setup.runGenerator();
+
+    const types =
+      setup.fileSystem[setup.suffixModulePath.replace(/\.js$/, '.d.ts')];
+    expect(types).toContain('export declare const customSuffix: string;');
+    expect(types).toContain(
+      'export declare const transformCustomTag: (tag: string) => string;',
+    );
   });
 
   it('imports the module from the index and component entries', async () => {

@@ -73,6 +73,10 @@ async function writeSuffixModule(
     tagNames,
   );
   await fs.writeFile(path.join(outputDir, suffixModuleFileName), suffixModule);
+  await fs.writeFile(
+    path.join(outputDir, suffixModuleFileName.replace(/\.js$/, '.d.ts')),
+    suffixModuleTypes,
+  );
 
   const entryFiles = [
     INDEX_FILE,
@@ -92,12 +96,23 @@ export function createSuffixModule(
     `import suffix from ${JSON.stringify(configImportPath)} with { type: "json" };`,
     `import { ${runtimeImport.exportName} as ${SET_TAG_TRANSFORMER} } from ${JSON.stringify(runtimeImport.moduleSpecifier)};`,
     `const tagNames = new Set(${JSON.stringify(tagNames)});`,
+    'export const customSuffix = suffix;',
+    'export const transformCustomTag = (tag) => (suffix && tagNames.has(tag) ? tag + suffix : tag);',
     'if (suffix) {',
-    `  ${SET_TAG_TRANSFORMER}((tag) => (tagNames.has(tag) ? tag + suffix : tag));`,
+    `  ${SET_TAG_TRANSFORMER}(transformCustomTag);`,
     '}',
     '',
   ].join('\n');
 }
+
+/** Types for the generated suffix module. */
+export const suffixModuleTypes = [
+  '/** The runtime tag suffix from `custom-suffix.json`, or an empty string. */',
+  'export declare const customSuffix: string;',
+  '/** Appends the runtime suffix to tag names of this library; other tags are returned unchanged. */',
+  'export declare const transformCustomTag: (tag: string) => string;',
+  '',
+].join('\n');
 
 async function prependSuffixImport(
   fs: CompilerFs,
