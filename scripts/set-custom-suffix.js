@@ -6,7 +6,9 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
 const argv = yargs(hideBin(process.argv))
-  .usage('Usage: $0 --set <value> --target <package> --angular <package>')
+  .usage(
+    'Usage: $0 --set <value> (--target <package> | --target-dir <path>) [--angular <package> | --angular-dir <path>]',
+  )
   .option('set', {
     alias: 's',
     type: 'string',
@@ -16,50 +18,77 @@ const argv = yargs(hideBin(process.argv))
   .option('target', {
     alias: 't',
     type: 'string',
-    demandOption: true,
     description: 'Target library package name',
+  })
+  .option('target-dir', {
+    type: 'string',
+    description:
+      'Path to the target library package directory, e.g. a `pnpm patch` edit dir',
   })
   .option('angular', {
     alias: 'a',
     type: 'string',
-    description: 'Path to angular component wrapper',
-    demandOption: false,
+    description: 'Angular component wrapper package name',
+  })
+  .option('angular-dir', {
+    type: 'string',
+    description: 'Path to the angular component wrapper package directory',
+  })
+  .conflicts('target', 'target-dir')
+  .conflicts('angular', 'angular-dir')
+  .check((args) => {
+    if (!args.target && !args.targetDir) {
+      throw new Error('One of --target or --target-dir is required');
+    }
+    return true;
   })
   .strict()
   .help()
   .parseSync();
 
-const set = String(argv.set);
-const target = String(argv.target);
-const angular = String(argv.angular);
-const suffix = `--${set}`;
+const suffix = `--${String(argv.set)}`;
 
-function getDistDir(pathStr) {
-  const pkgJsonUrl = import.meta.resolve(`${pathStr}/package.json`);
-  const pkgDir = path.dirname(fileURLToPath(new URL(pkgJsonUrl)));
-  return path.join(pkgDir, 'dist');
+function getPackageDir(packageName) {
+  const pkgJsonUrl = import.meta.resolve(`${packageName}/package.json`);
+  return path.dirname(fileURLToPath(new URL(pkgJsonUrl)));
 }
 
-const targetDistDir = getDistDir(target);
-const configFilePath = path.resolve(targetDistDir, 'custom-suffix.json');
-
-const distDir = path.dirname(configFilePath);
-if (!fs.existsSync(distDir)) {
-  throw new Error(`Dist folder not found: ${distDir}`);
+function resolveDistDir(packageName, packageDir) {
+  const baseDir = packageDir
+    ? path.resolve(packageDir)
+    : getPackageDir(packageName);
+  return path.join(baseDir, 'dist');
 }
 
-fs.writeFileSync(configFilePath, JSON.stringify(suffix, null, 2));
+// Package managers such as pnpm and bun hardlink node_modules files to a global store
+// shared by every project on the machine. Writing to a temp file and renaming it over the
+// original replaces the link instead of editing the shared inode.
+function writeFileUnlinked(filePath, content) {
+  const tempPath = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, content, 'utf8');
+  fs.renameSync(tempPath, filePath);
+}
+
+const target = argv.target ?? argv.targetDir;
+const targetDistDir = resolveDistDir(argv.target, argv.targetDir);
+if (!fs.existsSync(targetDistDir)) {
+  throw new Error(`Dist folder not found: ${targetDistDir}`);
+}
+
+const configFilePath = path.join(targetDistDir, 'custom-suffix.json');
+writeFileUnlinked(configFilePath, JSON.stringify(suffix, null, 2));
 console.log(
   `custom-suffix config updated successfully for "${target}"\n` +
     `new suffix set: "${suffix}"\n` +
     `file written to: ${configFilePath}`,
 );
 
+const angular = argv.angular || argv.angularDir;
 if (!angular) {
   process.exit(0);
 }
 
-const angularDistDir = getDistDir(angular);
+const angularDistDir = resolveDistDir(argv.angular, argv.angularDir);
 
 // Function that transforms the selector/tag
 function transformTag(str) {
@@ -99,7 +128,7 @@ function transformTagInFile(filePath) {
     content,
   );
 
-  fs.writeFileSync(filePath, content, 'utf8');
+  writeFileUnlinked(filePath, content);
 }
 
 const dirEntries = fs.readdirSync(angularDistDir, { withFileTypes: true });
