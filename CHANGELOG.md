@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.1.0](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.5...v2.1.0) (2026-11-12)
+
+
+### Features
+
+* add --target-dir and --angular-dir options ([#57](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/57)) ([2face8a](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/2face8a172bdb53edd607b887f3ac7f4d4d2c99a))
+
+## [2.0.5](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.4...v2.0.5) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** bump postcss-selector-parser to ^7.1.7 ([#55](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/55)) ([10da924](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/10da924957f570234185318856fcdd078dd68a52))
+
+## [2.0.4](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.3...v2.0.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* add JSON import attribute to custom suffix import ([#51](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/51)) ([e98ae7e](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/e98ae7e9b1fdbed9256f8d308d3ffe3f3d9ca291))
+
+## [2.0.3](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.2...v2.0.3) (2026-08-06)
+
+
+### Bug Fixes
+
+* skip components whose files cannot be read ([#48](https://github.com/Cliffback/stencil-custom-suffix-output-target/issues/48)) ([1739240](https://github.com/Cliffback/stencil-custom-suffix-output-target/commit/17392408578c7443a416ce62e0818f6a337d0cee))
+
 ## [2.0.2](https://github.com/Cliffback/stencil-custom-suffix-output-target/compare/v2.0.1...v2.0.2) (2026-05-28)
 
 
