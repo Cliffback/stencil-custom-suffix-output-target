@@ -75,10 +75,12 @@ Stencil already routes every tag name through its runtime `transformTag()` when 
 
 During build, the output target:
 
-- Writes a `custom-suffix.js` module to every `standalone` output directory. It reads the suffix from `custom-suffix.json` and calls Stencil's `setTagTransformer()`, appending the suffix to the library's own tag names only.
+- Writes a `custom-suffix.js` module to every `standalone` output directory. It reads the suffix from `custom-suffix.json` and calls Stencil's `setTagTransformer()`, appending the suffix to the library's own tag names only. It also exports `customSuffix` and `transformCustomTag` (typed in `custom-suffix.d.ts`), so framework wrappers with their own tag transformer (e.g. `@stencil/react-output-target`'s `setTagTransformer`) can reuse the same logic.
 - Imports that module from `index.js` and every component file, so the transformer is set before any component is defined or rendered.
 - Adds `` [key: `my-tag--${string}`] `` index signatures to `components.d.ts`, so suffixed tags are typed.
 - Writes an empty `custom-suffix.json` next to the output, which `set-custom-suffix` overwrites in the consuming app.
+
+With several `standalone` output targets (for example an unminified `dist/components` and a minified `dist/react-components` with `externalRuntime: false`), each directory gets its own `custom-suffix.js`, importing `setTagTransformer` from that directory's runtime. All of them read one shared `custom-suffix.json`, placed in the parent of the **first** `standalone` directory (`dist/custom-suffix.json` for `dist/components`), which is where `set-custom-suffix` writes it. Each module imports it by its own relative path.
 
 Component source that compares tag names by hand (e.g. `el.tagName === 'MY-TAG'`) is not transformed. Compare against `transformTag('my-tag')` from `@stencil/core` instead.
 
@@ -93,8 +95,10 @@ Component source that compares tag names by hand (e.g. `el.tagName === 'MY-TAG'`
 import suffix from "../custom-suffix.json" with { type: "json" };
 import { f as setTagTransformer } from "./runtime.js";
 const tagNames = new Set(["my-button", "my-checkbox"]);
+export const customSuffix = suffix;
+export const transformCustomTag = (tag) => (suffix && tagNames.has(tag) ? tag + suffix : tag);
 if (suffix) {
-  setTagTransformer((tag) => (tagNames.has(tag) ? tag + suffix : tag));
+  setTagTransformer(transformCustomTag);
 }
 ```
 </details>

@@ -124,3 +124,9 @@ declare module "@stencil/core" {
 }
 `,
 };
+
+export const chunkedStandaloneTestData = {
+  index: `import{a as e,c as t}from"./p-runtime.js";import{MyComponent as r}from"./my-component.js";export{r as MyComponent,e as setNonce,t as setTagTransformer};`,
+  component: `export{M as MyComponent,d as defineCustomElement}from"./p-a1b2c3.js";`,
+  dependency: `export{d as defineCustomElement}from"./p-d4e5f6.js";`,
+};
